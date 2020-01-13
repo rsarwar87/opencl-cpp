@@ -6,10 +6,11 @@
 #include <string.h>
 #include <DeviceBuffer.hpp>
 #include <DeviceProgram.hpp>
-#include <vector>
 #include <oclParser.hpp>
+#include <vector>
 
 using namespace oclParser;
+
 class DeviceClass {
  public:
   DeviceClass() {
@@ -23,48 +24,50 @@ class DeviceClass {
     m_platforms.m_devs = new cl_device_id*[m_platforms.m_nPlatforms];
 
     m_err = clGetPlatformIDs(m_platforms.m_nPlatforms,
-			     m_platforms.m_platformList, NULL);
+                             m_platforms.m_platformList, NULL);
     CHECKERROR("Call made to clGetPlatformIDs.");
     for (uint32_t p = 0; p < m_platforms.m_nPlatforms; ++p) {
       GetPlatformData(p);
-      std::cout << "Platform Name" << p << ": " << m_platforms.m_pdata[p].pname
-                << std::endl;
-      std::cout << "Platform Vendor" << p << ": "
-                << m_platforms.m_pdata[p].pvendor << std::endl;
-      std::cout << "Platform Version" << p << ": "
-                << m_platforms.m_pdata[p].pversion << std::endl;
-      std::cout << "Platform Profile" << p << ": "
-                << m_platforms.m_pdata[p].pprofile << std::endl;
-      std::cout << "Platform Extension" << p << ": "
-                << m_platforms.m_pdata[p].pextension << std::endl;
 
+      m_err = clGetDeviceIDs(m_platforms.m_platformList[p], CL_DEVICE_TYPE_ALL,
+                             0, NULL, &m_platforms.m_dev_count[p]);
+      CHECKERROR("Call made to clGetDeviceIDs.");
+      
+      m_platforms.m_devs[p] = new cl_device_id[m_platforms.m_dev_count[p]];
+      m_platforms.m_ddata[p] = new device_data[m_platforms.m_dev_count[p]];
 
-      m_err = clGetDeviceIDs(m_platforms.m_platformList[p], CL_DEVICE_TYPE_ALL, 
-						0, NULL, &m_platforms.m_dev_count[p]);
+      m_err = clGetDeviceIDs(m_platforms.m_platformList[p], CL_DEVICE_TYPE_ALL,
+                             m_platforms.m_dev_count[p], m_platforms.m_devs[p],
+                             NULL);
       CHECKERROR("Call made to clGetDeviceIDs.");
 
-    	m_platforms.m_devs[p] = new cl_device_id[m_platforms.m_dev_count[p]];
-   	  m_platforms.m_ddata[p] = new device_data[m_platforms.m_nPlatforms];
-
-      m_err = clGetDeviceIDs(m_platforms.m_platformList[p], CL_DEVICE_TYPE_ALL, 
-						m_platforms.m_dev_count[p], m_platforms.m_devs[p], NULL);
-      CHECKERROR("Call made to clGetDeviceIDs.");
-
-			for (uint32_t d = 0; d < m_platforms.m_dev_count[p]; d++)
-			{
-          GetDeviceData(p, d);
-			}
-			
+      for (uint32_t d = 0; d < m_platforms.m_dev_count[p]; d++) {
+        GetDeviceData(p, d);
+      }
     }
   }
 
+  void PrintPlatformData() {
+    for (uint32_t p = 0; p < m_platforms.m_nPlatforms; ++p) {
+      std::cout << "Platform Name[" << p << "]: " << m_platforms.m_pdata[p].pname
+                << std::endl;
+      std::cout << "Platform Vendor[" << p << "]: "
+                << m_platforms.m_pdata[p].pvendor << std::endl;
+      std::cout << "Platform Version[" << p << "]: "
+                << m_platforms.m_pdata[p].pversion << std::endl;
+      std::cout << "Platform Profile[" << p << "]: "
+                << m_platforms.m_pdata[p].pprofile << std::endl;
+      std::cout << "Platform Extension[" << p << "]: "
+                << m_platforms.m_pdata[p].pextension << std::endl;
+    }
+  }
   ~DeviceClass() {
     clReleaseCommandQueue(m_cmdQueue);  // Release  Command queue.
-    clReleaseContext(m_context);	// Release context.
+    clReleaseContext(m_context);        // Release context.
 
-    if (m_devices != NULL) {
+    if (m_device != NULL) {
       free(m_device);
-      m_devices = NULL;
+      m_device = NULL;
     }
   }
 
@@ -80,31 +83,18 @@ class DeviceClass {
   https://www.khronos.org/registry/OpenCL/sdk/1.0/docs/man/xhtml/enums.html#cl_device_info
   */
 
-  void GetDeviceData(uint32_t p, uint32_t d)
-  {
-      m_platforms.m_ddata[p][d].davailable =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_NAME);
-      m_platforms.m_pdata[p].pversion =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_VENDOR);
-      m_platforms.m_pdata[p].pprofile =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_PROFILE);
-      m_platforms.m_pdata[p].pvendor =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_VENDOR);
-      m_platforms.m_pdata[p].pextension = GetPlatformInfo(
-          m_platforms.m_platformList[p], CL_PLATFORM_EXTENSIONS);
-  }
-  void GetPlatformData(uint32_t p)
-  {
-      m_platforms.m_pdata[p].pname =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_NAME);
-      m_platforms.m_pdata[p].pversion =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_VENDOR);
-      m_platforms.m_pdata[p].pprofile =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_PROFILE);
-      m_platforms.m_pdata[p].pvendor =
-          GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_VENDOR);
-      m_platforms.m_pdata[p].pextension = GetPlatformInfo(
-          m_platforms.m_platformList[p], CL_PLATFORM_EXTENSIONS);
+  void GetDeviceData(uint32_t p, uint32_t d) {}
+  void GetPlatformData(uint32_t p) {
+    m_platforms.m_pdata[p].pname =
+        GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_NAME);
+    m_platforms.m_pdata[p].pversion =
+        GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_VERSION);
+    m_platforms.m_pdata[p].pprofile =
+        GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_PROFILE);
+    m_platforms.m_pdata[p].pvendor =
+        GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_VENDOR);
+    m_platforms.m_pdata[p].pextension =
+        GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_EXTENSIONS);
   }
 
   std::string GetPlatformInfo(cl_platform_id platform, cl_platform_info param) {
