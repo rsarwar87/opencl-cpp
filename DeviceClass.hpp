@@ -2,11 +2,11 @@
 #define DEVCLASSHPP
 
 #include <CL/cl.h>
-#include <error.h>
+#include <DeviceError.hpp>
 #include <string.h>
 #include <DeviceBuffer.hpp>
 #include <DeviceProgram.hpp>
-#include <oclParser.hpp>
+#include <OpenCLInfo.hpp>
 #include <vector>
 
 using namespace oclParser;

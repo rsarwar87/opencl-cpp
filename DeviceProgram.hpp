@@ -3,7 +3,7 @@
 
 #include <CL/cl.h>
 #include <assert.h>
-#include <error.h>
+#include <DeviceError.hpp>
 #include <string.h>
 #include <array>
 #include <fstream>
