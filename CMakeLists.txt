@@ -3,8 +3,14 @@ cmake_minimum_required(VERSION 3.2)
 project(opencl-cpp)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-pie -ggdb3 -O0 -no-pie -pedantic-errors -g3 -O3")
 
+set(_Boost_STACKTRACE_BASIC_HEADERS     "boost/stacktrace.hpp")
+set(_Boost_STACKTRACE_BACKTRACE_HEADERS "boost/stacktrace.hpp")
+set(_Boost_STACKTRACE_ADDR2LINE_HEADERS "boost/stacktrace.hpp")
+set(_Boost_STACKTRACE_NOOP_HEADERS      "boost/stacktrace.hpp")
+
+FIND_PACKAGE(Boost COMPONENTS stacktrace_backtrace REQUIRED )
 find_package(OpenCL REQUIRED)
 include_directories(${OpenCL_INCLUDE_DIRS})
 link_directories(${OpenCL_LIBRARY})

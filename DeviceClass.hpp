@@ -2,10 +2,8 @@
 #define DEVCLASSHPP
 
 #include <CL/cl.h>
-#include <DeviceError.hpp>
 #include <string.h>
-#include <DeviceBuffer.hpp>
-#include <DeviceProgram.hpp>
+#include <DeviceError.hpp>
 #include <OpenCLInfo.hpp>
 #include <vector>
 
@@ -17,11 +15,11 @@ class DeviceClass {
     m_err = clGetPlatformIDs(0, NULL, &m_platforms.m_nPlatforms);
     CHECKERROR("Call made to clGetPlatformIDs.");
 
-    m_platforms.m_ddata = new device_data*[m_platforms.m_nPlatforms];
+    m_platforms.m_ddata = new device_data *[m_platforms.m_nPlatforms];
     m_platforms.m_pdata = new platform_data[m_platforms.m_nPlatforms];
     m_platforms.m_platformList = new cl_platform_id[m_platforms.m_nPlatforms];
     m_platforms.m_dev_count = new cl_uint[m_platforms.m_nPlatforms];
-    m_platforms.m_devs = new cl_device_id*[m_platforms.m_nPlatforms];
+    m_platforms.m_devs = new cl_device_id *[m_platforms.m_nPlatforms];
 
     m_err = clGetPlatformIDs(m_platforms.m_nPlatforms,
                              m_platforms.m_platformList, NULL);
@@ -32,7 +30,7 @@ class DeviceClass {
       m_err = clGetDeviceIDs(m_platforms.m_platformList[p], CL_DEVICE_TYPE_ALL,
                              0, NULL, &m_platforms.m_dev_count[p]);
       CHECKERROR("Call made to clGetDeviceIDs.");
-      
+
       m_platforms.m_devs[p] = new cl_device_id[m_platforms.m_dev_count[p]];
       m_platforms.m_ddata[p] = new device_data[m_platforms.m_dev_count[p]];
 
@@ -42,39 +40,87 @@ class DeviceClass {
       CHECKERROR("Call made to clGetDeviceIDs.");
 
       for (uint32_t d = 0; d < m_platforms.m_dev_count[p]; d++) {
-        GetDeviceData(p, d);
+        GetDeviceData(m_platforms.m_platformList[p], &m_platforms.m_devs[p][d],
+                      m_platforms.m_ddata[p][d]);
       }
     }
   }
 
+  void PrintDeviceData(uint32_t id, struct device_data &data) {
+#define PRINT(x)                                               \
+  std::cout << "\t[" << id << "]: " << data.m_##x.name << ": " \
+            << data.m_##x.value << std::endl;
+    PRINT(name);
+    PRINT(opencl_c_version)
+    PRINT(extensions)
+    PRINT(profile)
+    PRINT(vendor_id)
+    PRINT(vendor)
+    PRINT(version)
+    PRINT(max_compute_units);
+    PRINT(max_clock_frequency);
+    PRINT(max_read_image_args);
+    PRINT(endian_little);
+    PRINT(address_bits);
+    PRINT(available)
+    PRINT(compiler_available)
+    PRINT(error_correction_support)
+
+    PRINT(global_mem_cache_size)
+    PRINT(global_mem_cache_type)
+    PRINT(global_mem_cacheline_size)
+    PRINT(global_mem_size)
+    PRINT(host_unified_memory)
+    PRINT(image_support)
+    PRINT(image3d_max_depth)
+    PRINT(image3d_max_height)
+    PRINT(image3d_max_width)
+    PRINT(image2d_max_height)
+    PRINT(image2d_max_width)
+    PRINT(local_mem_size)
+    PRINT(max_parameter_size)
+    PRINT(max_work_group_size)
+    PRINT(profiling_timer_resolution)
+    PRINT(max_constant_args)
+    PRINT(max_samplers)
+    PRINT(max_work_item_dimensions)
+    PRINT(mem_base_addr_align)
+    PRINT(min_data_type_align_size)
+    PRINT(max_constant_buffer_size)
+    PRINT(max_mem_alloc_size)
+    PRINT(native_vector_width_char)
+    PRINT(native_vector_width_double)
+    PRINT(native_vector_width_float)
+    PRINT(native_vector_width_int)
+    PRINT(native_vector_width_long)
+    PRINT(native_vector_width_short)
+    PRINT(preferred_vector_width_char)
+    PRINT(preferred_vector_width_double)
+    PRINT(preferred_vector_width_float)
+    PRINT(preferred_vector_width_int)
+    PRINT(preferred_vector_width_long)
+    PRINT(preferred_vector_width_short)
+  }
   void PrintPlatformData() {
     for (uint32_t p = 0; p < m_platforms.m_nPlatforms; ++p) {
-      std::cout << "Platform Name[" << p << "]: " << m_platforms.m_pdata[p].pname
-                << std::endl;
-      std::cout << "Platform Vendor[" << p << "]: "
-                << m_platforms.m_pdata[p].pvendor << std::endl;
-      std::cout << "Platform Version[" << p << "]: "
-                << m_platforms.m_pdata[p].pversion << std::endl;
-      std::cout << "Platform Profile[" << p << "]: "
-                << m_platforms.m_pdata[p].pprofile << std::endl;
-      std::cout << "Platform Extension[" << p << "]: "
-                << m_platforms.m_pdata[p].pextension << std::endl;
+      std::cout << "Platform Name[" << p
+                << "]: " << m_platforms.m_pdata[p].pname << std::endl;
+      std::cout << "Platform Vendor[" << p
+                << "]: " << m_platforms.m_pdata[p].pvendor << std::endl;
+      std::cout << "Platform Version[" << p
+                << "]: " << m_platforms.m_pdata[p].pversion << std::endl;
+      std::cout << "Platform Profile[" << p
+                << "]: " << m_platforms.m_pdata[p].pprofile << std::endl;
+      std::cout << "Platform Extension[" << p
+                << "]: " << m_platforms.m_pdata[p].pextension << std::endl;
+      PrintDeviceData(0, m_platforms.m_ddata[p][0]);
     }
   }
   ~DeviceClass() {
-    clReleaseCommandQueue(m_cmdQueue);  // Release  Command queue.
-    clReleaseContext(m_context);        // Release context.
-
-    if (m_device != NULL) {
-      free(m_device);
-      m_device = NULL;
-    }
   }
 
+
  private:
-  cl_context m_context;
-  cl_command_queue m_cmdQueue;
-  cl_device_id* m_device;
 
   platform_list m_platforms;
 
@@ -83,7 +129,67 @@ class DeviceClass {
   https://www.khronos.org/registry/OpenCL/sdk/1.0/docs/man/xhtml/enums.html#cl_device_info
   */
 
-  void GetDeviceData(uint32_t p, uint32_t d) {}
+  void GetDeviceData(cl_platform_id &p, cl_device_id *d,
+                     struct device_data &data) {
+#define GETDAT2(x)                                      \
+  void *tmp##x = printDeviceInfo(d[0], data.m_##x.key); \
+  data.m_##x.value = (char *)tmp##x;
+#define GETDAT(x)                                                           \
+  void *tmp##x = printDeviceInfo(d[0], data.m_##x.key);                     \
+  data.m_##x.value = *reinterpret_cast<typeof(data.m_##x.value) *>(tmp##x); \
+  free(tmp##x);
+    // void *r = printDeviceInfo(d[0], data.m_max_compute_units.key);
+    // data.m_max_compute_units.value =
+    // *reinterpret_cast<typeof(data.m_max_compute_units.value)*>(r); free(r);
+    GETDAT(max_compute_units);
+    GETDAT(max_clock_frequency);
+    GETDAT(max_read_image_args);
+    GETDAT(endian_little);
+    GETDAT(address_bits);
+    GETDAT(available);
+    GETDAT(compiler_available)
+    GETDAT(error_correction_support)
+    GETDAT(global_mem_cache_size)
+    GETDAT(global_mem_cache_type)
+    GETDAT(global_mem_cacheline_size)
+    GETDAT(global_mem_size)
+    GETDAT(host_unified_memory)
+    GETDAT(image_support)
+    GETDAT(image3d_max_depth)
+    GETDAT(image3d_max_height)
+    GETDAT(image3d_max_width)
+    GETDAT(image2d_max_height)
+    GETDAT(image2d_max_width)
+    GETDAT(local_mem_size)
+    GETDAT(max_parameter_size)
+    GETDAT(max_work_group_size)
+    GETDAT(profiling_timer_resolution)
+    GETDAT(max_constant_args)
+    GETDAT(max_samplers)
+    GETDAT(max_work_item_dimensions)
+    GETDAT(mem_base_addr_align)
+    GETDAT(max_constant_buffer_size)
+    GETDAT(max_mem_alloc_size)
+    GETDAT(native_vector_width_char)
+    GETDAT(native_vector_width_double)
+    GETDAT(native_vector_width_float)
+    GETDAT(native_vector_width_int)
+    GETDAT(native_vector_width_long)
+    GETDAT(native_vector_width_short)
+    GETDAT(preferred_vector_width_char)
+    GETDAT(preferred_vector_width_double)
+    GETDAT(preferred_vector_width_float)
+    GETDAT(preferred_vector_width_int)
+    GETDAT(preferred_vector_width_long)
+    GETDAT(preferred_vector_width_short)
+    GETDAT2(name)
+    GETDAT2(opencl_c_version)
+    GETDAT2(extensions)
+    GETDAT2(profile)
+    GETDAT2(vendor_id)
+    GETDAT2(vendor)
+    GETDAT2(version)
+  }
   void GetPlatformData(uint32_t p) {
     m_platforms.m_pdata[p].pname =
         GetPlatformInfo(m_platforms.m_platformList[p], CL_PLATFORM_NAME);
@@ -102,7 +208,7 @@ class DeviceClass {
     m_err = clGetPlatformInfo(platform, param, 0, NULL, &buffer_size);
     CHECKERROR("Call made to clGetPlatformInfo.");
 
-    char* buffer = (char*)malloc(buffer_size);
+    char *buffer = (char *)malloc(buffer_size);
     m_err = clGetPlatformInfo(platform, param, buffer_size, buffer, NULL);
     CHECKERROR("Call made to clGetPlatformInfo.");
 
@@ -110,25 +216,18 @@ class DeviceClass {
     free(buffer);
     return ret;
   };
-  /*
-   *CL_PLATFORM_PROFILE
-  CL_PLATFORM_VERSION
-  CL_PLATFORM_NAME
-  CL_PLATFORM_VENDOR
-  CL_PLATFORM_EXTENSIONS<Paste>
-   * */
-  std::string printDeviceInfo(cl_device_id device, cl_device_info param) {
+  void *printDeviceInfo(cl_device_id &device, cl_device_info param) {
     size_t buffer_size;
     m_err = clGetDeviceInfo(device, param, 0, NULL, &buffer_size);
     CHECKERROR("Call made to clGetDeviceInfo.");
 
-    char* buffer = (char*)malloc(buffer_size);
+    void *buffer = (void *)malloc(buffer_size);
     m_err = clGetDeviceInfo(device, param, buffer_size, buffer, NULL);
     CHECKERROR("Call made to clGetDeviceInfo.");
 
-    std::string ret(buffer);
-    free(buffer);
-    return ret;
+    //    std::string ret(buffer);
+    //  free(buffer);
+    return buffer;
   };
 };
 #endif

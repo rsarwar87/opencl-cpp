@@ -1,8 +1,8 @@
-#include <DeviceClass.hpp>
+#include <DeviceHandler.hpp>
 #include <iostream>
 int main ()
 {
-  DeviceClass *mm = new DeviceClass();
+  DeviceHandler *mm = new DeviceHandler();
   mm->PrintPlatformData();
   std::cout << "Wait" << std::endl;
     return 0;

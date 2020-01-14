@@ -38,7 +38,7 @@ struct dcl_bool {
 struct dcl_string {
   cl_uint key;
   std::string name;
-  std::string value;
+  char * value;
 };
 
 #define CL_DEVICE_type CL_DEVICE_TYPE
@@ -215,14 +215,14 @@ struct device_data {
   DEFINE_VAL(uint, preferred_vector_width_int, 0)
   DEFINE_VAL(uint, preferred_vector_width_long, 0)
   DEFINE_VAL(uint, preferred_vector_width_short, 0)
-  DEFINE_VAL(string, name, "")
-  DEFINE_VAL(string, opencl_c_version, "")
-  DEFINE_VAL(string, extensions, "")
-  DEFINE_VAL(string, profile, "")
-  DEFINE_VAL(string, vendor_id, "")
-  DEFINE_VAL(string, vendor, "")
-  DEFINE_VAL(string, version, "")
-  dcl_string m_driver_version{CL_DRIVER_VERSION, "CL_DRIVER_VERSION", ""};
+  DEFINE_VAL(string, name, NULL)
+  DEFINE_VAL(string, opencl_c_version, NULL)
+  DEFINE_VAL(string, extensions, NULL)
+  DEFINE_VAL(string, profile, NULL)
+  DEFINE_VAL(string, vendor_id, NULL)
+  DEFINE_VAL(string, vendor, NULL)
+  DEFINE_VAL(string, version, NULL)
+  dcl_string m_driver_version{CL_DRIVER_VERSION, "CL_DRIVER_VERSION", NULL};
 };
 struct platform_list {
   /* Number of platforms in the system */
