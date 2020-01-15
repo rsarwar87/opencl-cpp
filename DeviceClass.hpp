@@ -100,6 +100,15 @@ class DeviceClass {
     PRINT(preferred_vector_width_int)
     PRINT(preferred_vector_width_long)
     PRINT(preferred_vector_width_short)
+    PRINT(double_fp_config)
+    PRINT(half_fp_config)
+    PRINT(local_mem_type)
+    PRINT(execution_capabilities)
+    PRINT(max_work_item_sizes)
+    PRINT(queue_properties)
+    PRINT(single_fp_config)
+    PRINT(type)
+    PRINT(platform)
   }
   void PrintPlatformData() {
     for (uint32_t p = 0; p < m_platforms.m_nPlatforms; ++p) {
@@ -117,8 +126,26 @@ class DeviceClass {
     }
   }
   ~DeviceClass() {
+    std::cout << "Destroying device" << std::endl;
+    for (uint32_t p = 0; p < m_platforms.m_nPlatforms; ++p) {
+      for (uint32_t d = 0; d < m_platforms.m_dev_count[p]; d++) {
+#define RELDAT2(x)                                   \
+  if (m_platforms.m_ddata[p][d].m_##x.value != NULL) \
+    free(m_platforms.m_ddata[p][d].m_##x.value);
+        RELDAT2(name)
+        RELDAT2(opencl_c_version)
+        RELDAT2(extensions)
+        RELDAT2(profile)
+        RELDAT2(vendor_id)
+        RELDAT2(vendor)
+        RELDAT2(version)
+        clReleaseDevice(m_platforms.m_devs[p][d]);
+      }
+    }
+    if (m_platforms.m_ddata != NULL) delete (m_platforms.m_ddata);
+    if (m_platforms.m_platformList != NULL) delete (m_platforms.m_platformList);
+    if (m_platforms.m_dev_count != NULL) delete (m_platforms.m_dev_count);
   }
-
 
  private:
 
@@ -133,7 +160,7 @@ class DeviceClass {
                      struct device_data &data) {
 #define GETDAT2(x)                                      \
   void *tmp##x = printDeviceInfo(d[0], data.m_##x.key); \
-  data.m_##x.value = (char *)tmp##x;
+  data.m_##x.value = (typeof(data.m_##x.value))tmp##x;
 #define GETDAT(x)                                                           \
   void *tmp##x = printDeviceInfo(d[0], data.m_##x.key);                     \
   data.m_##x.value = *reinterpret_cast<typeof(data.m_##x.value) *>(tmp##x); \
@@ -182,6 +209,16 @@ class DeviceClass {
     GETDAT(preferred_vector_width_int)
     GETDAT(preferred_vector_width_long)
     GETDAT(preferred_vector_width_short)
+    GETDAT(double_fp_config)
+    GETDAT(half_fp_config)
+    GETDAT(local_mem_type)
+    GETDAT(execution_capabilities)
+    GETDAT2(max_work_item_sizes)
+    GETDAT(queue_properties)
+    GETDAT(single_fp_config)
+    GETDAT(type)
+    GETDAT(platform)
+
     GETDAT2(name)
     GETDAT2(opencl_c_version)
     GETDAT2(extensions)

@@ -15,30 +15,12 @@ struct platform_data {
   std::string pextension; /* CL_PLATFORM_ICD_SUFFIX_KHR or surrogate */
 };
 
-struct dcl_sizet {
+
+template<typename T>
+struct dcl_container {
   cl_uint key;
   std::string name;
-  size_t value;
-};
-struct dcl_uint {
-  cl_uint key;
-  std::string name;
-  cl_uint value;
-};
-struct dcl_ulong {
-  cl_uint key;
-  std::string name;
-  cl_ulong value;
-};
-struct dcl_bool {
-  cl_uint key;
-  std::string name;
-  cl_bool value;
-};
-struct dcl_string {
-  cl_uint key;
-  std::string name;
-  char * value;
+  T value;
 };
 
 #define CL_DEVICE_type CL_DEVICE_TYPE
@@ -157,72 +139,72 @@ struct dcl_string {
 #define CL_DEVICE_sub_group_independent_forward_progress \
   CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS
 
-#define DEFINE_VAL(str, name, val) \
-  dcl_##str m_##name{CL_DEVICE_##name, #name, val};
+#define DEFINE_VAL2(type, name, val) \
+  dcl_container<type> m_##name{CL_DEVICE_##name, #name, val};
 struct device_data {
-  DEFINE_VAL(uint, address_bits, 0)
-  DEFINE_VAL(bool, available, CL_FALSE)
-  DEFINE_VAL(bool, compiler_available, 0)
-  DEFINE_VAL(bool, endian_little, 0)
-  DEFINE_VAL(bool, error_correction_support, 0)
+  DEFINE_VAL2(uint, address_bits, 0)
+  DEFINE_VAL2(bool, available, CL_FALSE)
+  DEFINE_VAL2(bool, compiler_available, 0)
+  DEFINE_VAL2(bool, endian_little, 0)
+  DEFINE_VAL2(bool, error_correction_support, 0)
 
-  DEFINE_VAL(ulong, global_mem_cache_size, 0)
-  DEFINE_VAL(ulong, global_mem_cache_type, 0)
-  DEFINE_VAL(ulong, global_mem_cacheline_size, 0)
-  DEFINE_VAL(ulong, global_mem_size, 0)
+  DEFINE_VAL2(ulong, global_mem_cache_size, 0)
+  DEFINE_VAL2(ulong, global_mem_cache_type, 0)
+  DEFINE_VAL2(ulong, global_mem_cacheline_size, 0)
+  DEFINE_VAL2(ulong, global_mem_size, 0)
 
-  cl_device_fp_config ddouble_fp_config;
-  cl_device_fp_config dhalf_fp_config;
-  cl_device_local_mem_type dlocal_mem_type;
-  cl_device_exec_capabilities dexecution_capabilities;
-  std::array<size_t, 3> dmax_work_item_sizes;
-  cl_command_queue_properties queue_properties;
-  cl_device_fp_config single_fp_config;
-  cl_device_type type;
-  cl_platform_id platform;
+  DEFINE_VAL2(cl_device_fp_config, double_fp_config, 0)
+  DEFINE_VAL2(cl_device_fp_config, half_fp_config, 0)
+  DEFINE_VAL2(cl_device_local_mem_type, local_mem_type, 0)
+  DEFINE_VAL2(cl_device_exec_capabilities, execution_capabilities, 0)
+  DEFINE_VAL2(size_t*, max_work_item_sizes, 0)
+  DEFINE_VAL2(cl_command_queue_properties, queue_properties, 0)
+  DEFINE_VAL2(cl_device_fp_config, single_fp_config, 0)
+  DEFINE_VAL2(cl_device_type, type, 0)
+  DEFINE_VAL2(cl_platform_id, platform, 0)
 
-  DEFINE_VAL(bool, host_unified_memory, 0)
-  DEFINE_VAL(bool, image_support, 0)
-  DEFINE_VAL(sizet, image2d_max_height, 0)
-  DEFINE_VAL(sizet, image2d_max_width, 0)
-  DEFINE_VAL(sizet, image3d_max_height, 0)
-  DEFINE_VAL(sizet, image3d_max_depth, 0)
-  DEFINE_VAL(sizet, image3d_max_width, 0)
-  DEFINE_VAL(sizet, local_mem_size, 0)
-  DEFINE_VAL(sizet, max_parameter_size, 0)
-  DEFINE_VAL(sizet, max_work_group_size, 0)
-  DEFINE_VAL(sizet, profiling_timer_resolution, 0)
+  DEFINE_VAL2(bool, host_unified_memory, 0)
+  DEFINE_VAL2(bool, image_support, 0)
+  DEFINE_VAL2(size_t, image2d_max_height, 0)
+  DEFINE_VAL2(size_t, image2d_max_width, 0)
+  DEFINE_VAL2(size_t, image3d_max_height, 0)
+  DEFINE_VAL2(size_t, image3d_max_depth, 0)
+  DEFINE_VAL2(size_t, image3d_max_width, 0)
+  DEFINE_VAL2(size_t, local_mem_size, 0)
+  DEFINE_VAL2(size_t, max_parameter_size, 0)
+  DEFINE_VAL2(size_t, max_work_group_size, 0)
+  DEFINE_VAL2(size_t, profiling_timer_resolution, 0)
 
-  DEFINE_VAL(uint, max_clock_frequency, 0)
-  DEFINE_VAL(uint, max_compute_units, 0)
-  DEFINE_VAL(uint, max_constant_args, 0)
-  DEFINE_VAL(uint, max_read_image_args, 0)
-  DEFINE_VAL(uint, max_samplers, 0)
-  DEFINE_VAL(uint, max_work_item_dimensions, 0)
-  DEFINE_VAL(uint, mem_base_addr_align, 0)
-  DEFINE_VAL(uint, min_data_type_align_size, 0)
-  DEFINE_VAL(ulong, max_constant_buffer_size, 0)
-  DEFINE_VAL(ulong, max_mem_alloc_size, 0)
-  DEFINE_VAL(uint, native_vector_width_char, 0)
-  DEFINE_VAL(uint, native_vector_width_double, 0)
-  DEFINE_VAL(uint, native_vector_width_float, 0)
-  DEFINE_VAL(uint, native_vector_width_int, 0)
-  DEFINE_VAL(uint, native_vector_width_long, 0)
-  DEFINE_VAL(uint, native_vector_width_short, 0)
-  DEFINE_VAL(uint, preferred_vector_width_char, 0)
-  DEFINE_VAL(uint, preferred_vector_width_double, 0)
-  DEFINE_VAL(uint, preferred_vector_width_float, 0)
-  DEFINE_VAL(uint, preferred_vector_width_int, 0)
-  DEFINE_VAL(uint, preferred_vector_width_long, 0)
-  DEFINE_VAL(uint, preferred_vector_width_short, 0)
-  DEFINE_VAL(string, name, NULL)
-  DEFINE_VAL(string, opencl_c_version, NULL)
-  DEFINE_VAL(string, extensions, NULL)
-  DEFINE_VAL(string, profile, NULL)
-  DEFINE_VAL(string, vendor_id, NULL)
-  DEFINE_VAL(string, vendor, NULL)
-  DEFINE_VAL(string, version, NULL)
-  dcl_string m_driver_version{CL_DRIVER_VERSION, "CL_DRIVER_VERSION", NULL};
+  DEFINE_VAL2(uint, max_clock_frequency, 0)
+  DEFINE_VAL2(uint, max_compute_units, 0)
+  DEFINE_VAL2(uint, max_constant_args, 0)
+  DEFINE_VAL2(uint, max_read_image_args, 0)
+  DEFINE_VAL2(uint, max_samplers, 0)
+  DEFINE_VAL2(uint, max_work_item_dimensions, 0)
+  DEFINE_VAL2(uint, mem_base_addr_align, 0)
+  DEFINE_VAL2(uint, min_data_type_align_size, 0)
+  DEFINE_VAL2(ulong, max_constant_buffer_size, 0)
+  DEFINE_VAL2(ulong, max_mem_alloc_size, 0)
+  DEFINE_VAL2(uint, native_vector_width_char, 0)
+  DEFINE_VAL2(uint, native_vector_width_double, 0)
+  DEFINE_VAL2(uint, native_vector_width_float, 0)
+  DEFINE_VAL2(uint, native_vector_width_int, 0)
+  DEFINE_VAL2(uint, native_vector_width_long, 0)
+  DEFINE_VAL2(uint, native_vector_width_short, 0)
+  DEFINE_VAL2(uint, preferred_vector_width_char, 0)
+  DEFINE_VAL2(uint, preferred_vector_width_double, 0)
+  DEFINE_VAL2(uint, preferred_vector_width_float, 0)
+  DEFINE_VAL2(uint, preferred_vector_width_int, 0)
+  DEFINE_VAL2(uint, preferred_vector_width_long, 0)
+  DEFINE_VAL2(uint, preferred_vector_width_short, 0)
+  DEFINE_VAL2(char*, name, NULL)
+  DEFINE_VAL2(char*, opencl_c_version, NULL)
+  DEFINE_VAL2(char*, extensions, NULL)
+  DEFINE_VAL2(char*, profile, NULL)
+  DEFINE_VAL2(char*, vendor_id, NULL)
+  DEFINE_VAL2(char*, vendor, NULL)
+  DEFINE_VAL2(char*, version, NULL)
+  dcl_container<char*> m_driver_version{CL_DRIVER_VERSION, "CL_DRIVER_VERSION", NULL};
 };
 struct platform_list {
   /* Number of platforms in the system */

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2)
 project(opencl-cpp)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-pie -ggdb3 -O0 -no-pie -pedantic-errors -g3 -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wignored-attributes -fno-pie -ggdb3 -O0 -no-pie -pedantic-errors -g3 -O3")
 
 set(_Boost_STACKTRACE_BASIC_HEADERS     "boost/stacktrace.hpp")
 set(_Boost_STACKTRACE_BACKTRACE_HEADERS "boost/stacktrace.hpp")
