@@ -45,12 +45,8 @@ int main (int ac, char** av)
   mm->CreateBuffer("output", (strlength + 1)* sizeof(char), (void*)output, 
                    WRITEONLY, false);
   mm->CreateKernel("Test1", "helloworld", {"input", "output"}); 
-  std::array<size_t[1], 3> di;
-  di[0][0] = NULL;
-  di[1][0] = global_work_size[0];
-  di[2][0] = NULL;
-  mm->RunKernel("Test1", "helloworld", 1, di);
-
+  mm->RunKernel("Test1", "helloworld", 1, {NULL, global_work_size, NULL});
+  mm->SyncBuffer("output");
 	output[strlength] = '\0'; //Add the terminal character to the end of output.
 	cout << "\noutput string:" << endl;
 	cout << output << endl;

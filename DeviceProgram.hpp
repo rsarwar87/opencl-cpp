@@ -91,8 +91,8 @@ class DeviceProgram {
   };
 
   template <class T>
-  cl_int AssignArgument(std::string name, T& buffer) {
-    m_err = clSetKernelArg(GetKernel(name), 0, sizeof(T), (void*)&buffer);
+  cl_int AssignArgument(std::string name, cl_uint idx, T& buffer) {
+    m_err = clSetKernelArg(GetKernel(name), idx, sizeof(T), (void*)&buffer);
     CHECKERROR("Call made to clSetKernelArg.");
     return m_err;
   }
@@ -105,10 +105,12 @@ class DeviceProgram {
   }
 
   cl_int RunKernel(std::string name, cl_uint dim_sz,
-                   std::array<size_t[1], 3> dim, bool blocking = false) {
-    m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz, dim[0],
-                                   dim[1], dim[2], 0, NULL, NULL);
-
+                   std::array<size_t*, 3> dim, bool blocking = false) {
+    m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz,
+                dim[0],
+                dim[1],
+                dim[2],
+                0, NULL, NULL);
     CHECKERROR("Call made to clEnqueueNDRangeKernel.");
     if (blocking) WaitTillFinish();
     return m_err;

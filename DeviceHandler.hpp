@@ -47,12 +47,12 @@ class DeviceHandler : public DeviceClass {
     for (size_t i = 0; i < args.size(); i++) {
       DeviceBuffer* p_buf = FindBuffer(args.at(i));
       ptr->AssignArgument<decltype(p_buf->GetDevBuffer())>(
-          nkernel, p_buf->GetDevBuffer());
+          nkernel, i, p_buf->GetDevBuffer());
     }
   }
 
   void RunKernel(std::string nprog, std::string nkernel, cl_uint dim_sz,
-                 std::array<size_t[1], 3> dim, bool blocking = false) {
+                 std::array<size_t*, 3> dim, bool blocking = false) {
     FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, blocking);
   }
 
