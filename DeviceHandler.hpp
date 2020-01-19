@@ -40,11 +40,16 @@ class DeviceHandler : public DeviceClass {
   }
 
   void CreateKernel(std::string nprog, std::string nkernel,
-                    vector<string> args) {
+                    std::vector<std::string> args, std::vector<size_t> sz = {}) {
     DeviceProgram* ptr = FindProgram(nprog);
     ptr->CreateKernel(nkernel);
 
     for (size_t i = 0; i < args.size(); i++) {
+      if (args.at(i) == "NULL")
+      {
+        ptr->AssignLocalArgument(nkernel, i, sz.at(i));
+        continue;
+      }
       DeviceBuffer* p_buf = FindBuffer(args.at(i));
       ptr->AssignArgument<decltype(p_buf->GetDevBuffer())>(
           nkernel, i, p_buf->GetDevBuffer());

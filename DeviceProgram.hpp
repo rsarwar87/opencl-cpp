@@ -90,9 +90,14 @@ class DeviceProgram {
     return retString;
   };
 
+  cl_int AssignLocalArgument(std::string name, cl_uint idx, size_t sz = 1) {
+    m_err = clSetKernelArg(GetKernel(name), idx, sz, NULL);
+    CHECKERROR("Call made to clSetKernelArg.");
+    return m_err;
+  }
   template <class T>
-  cl_int AssignArgument(std::string name, cl_uint idx, T& buffer) {
-    m_err = clSetKernelArg(GetKernel(name), idx, sizeof(T), (void*)&buffer);
+  cl_int AssignArgument(std::string name, cl_uint idx, T& buffer, size_t sz = 1) {
+    m_err = clSetKernelArg(GetKernel(name), idx, sizeof(T) * sz, (void*)&buffer);
     CHECKERROR("Call made to clSetKernelArg.");
     return m_err;
   }
