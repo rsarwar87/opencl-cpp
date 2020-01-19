@@ -34,24 +34,22 @@ int main (int ac, char** av)
   mm->CreateProgram("Test1", fname);
 
   std::string input = "GdkknVnqkc";
-	size_t strlength = input.size();
-	size_t global_work_size[1] = { strlength };
 	cout << "input string:" << endl;
 	cout << input << endl;
-	char *output = (char*)malloc(strlength + 1);
+	char *output = (char*)malloc(input.size() + 1);
   
-  mm->CreateBuffer("input", (strlength)* sizeof(char), (void*)input.c_str(), 
+  mm->CreateBuffer("input", (input.size())* sizeof(char), (void*)input.c_str(), 
                    READWRITE);
-  mm->CreateBuffer("output", (strlength + 1)* sizeof(char), (void*)output, 
+  mm->CreateBuffer("output", (input.size() + 1)* sizeof(char), (void*)output, 
                    WRITEONLY, false);
   mm->CreateKernel("Test1", "helloworld", {"input", "output"}); 
-  mm->RunKernel("Test1", "helloworld", 1, {NULL, global_work_size, NULL});
+  size_t sz[1] = {input.size()};
+  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL});
   mm->SyncBuffer("output");
-	output[strlength] = '\0'; //Add the terminal character to the end of output.
+	output[input.size()] = '\0'; //Add the terminal character to the end of output.
 	cout << "\noutput string:" << endl;
 	cout << output << endl;
   delete mm;
-  std::cout << "Wait" << std::endl;
   return 0;
 }
 
