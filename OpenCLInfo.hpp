@@ -4,6 +4,7 @@
 // C++ Exception Code
 #include <CL/cl.h>
 #include <array>
+#include <tuple>
 #include <string>
 namespace oclParser {
 
@@ -141,6 +142,8 @@ struct dcl_container {
 
 #define DEFINE_VAL2(type, name, val) \
   dcl_container<type> m_##name{CL_DEVICE_##name, #name, val};
+#define DEFINE_TUPLE(name, val) std::make_tuple(CL_DEVICE_##name, #name, val)
+
 struct device_data {
   DEFINE_VAL2(uint, address_bits, 0)
   DEFINE_VAL2(bool, available, CL_FALSE)
@@ -205,6 +208,19 @@ struct device_data {
   DEFINE_VAL2(char*, vendor, NULL)
   DEFINE_VAL2(char*, version, NULL)
   dcl_container<char*> m_driver_version{CL_DRIVER_VERSION, "CL_DRIVER_VERSION", NULL};
+
+  std::array <std::tuple <uint32_t, std::string, std::string>, 8> mt_string 
+        = { std::make_tuple(CL_DRIVER_VERSION, "CL_DRIVER_VERSION", "test"), 
+          DEFINE_TUPLE (name, "test"),
+          DEFINE_TUPLE (opencl_c_version, ""),
+          DEFINE_TUPLE (extensions, ""),
+          DEFINE_TUPLE (profile, ""),
+          DEFINE_TUPLE (vendor_id, ""),
+          DEFINE_TUPLE (vendor, ""),
+          DEFINE_TUPLE (version, "")
+
+
+        }; 
 };
 struct platform_list {
   /* Number of platforms in the system */

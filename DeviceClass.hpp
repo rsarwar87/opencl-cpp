@@ -149,7 +149,6 @@ class DeviceClass {
 
  private:
 
-  platform_list m_platforms;
 
   cl_int m_err;
   /*
@@ -158,6 +157,10 @@ class DeviceClass {
 
   void GetDeviceData(cl_platform_id &p, cl_device_id *d,
                      struct device_data &data) {
+#define GETDAT3(x)                                      \
+  void *tmp##x = printDeviceInfo(d[0], std::get <0> x); \
+  std::get <2> x = (typeof(data.m_##x.value))tmp##x; \
+  free(tmp##x)
 #define GETDAT2(x)                                      \
   void *tmp##x = printDeviceInfo(d[0], data.m_##x.key); \
   data.m_##x.value = (typeof(data.m_##x.value))tmp##x;
@@ -226,6 +229,8 @@ class DeviceClass {
     GETDAT2(vendor_id)
     GETDAT2(vendor)
     GETDAT2(version)
+
+
   }
   void GetPlatformData(uint32_t p) {
     m_platforms.m_pdata[p].pname =
@@ -266,5 +271,8 @@ class DeviceClass {
     //  free(buffer);
     return buffer;
   };
+ protected:
+  platform_list m_platforms;
+
 };
 #endif

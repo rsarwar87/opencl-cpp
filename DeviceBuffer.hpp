@@ -26,7 +26,7 @@ class DeviceBuffer {
     m_sizeDevBuffer = 0;
     m_initialized = false;
     m_err = CL_SUCCESS;
-    AppendFlag(flg);
+   AppendFlag(flg);
   }
 
   ~DeviceBuffer() { clReleaseMemObject(m_devBuffer); }
