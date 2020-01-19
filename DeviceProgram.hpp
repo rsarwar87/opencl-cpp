@@ -3,13 +3,15 @@
 
 #include <CL/cl.h>
 #include <assert.h>
-#include <DeviceError.hpp>
 #include <string.h>
+#include <DeviceError.hpp>
 #include <array>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <utility>
 #include <vector>
+
 
 class DeviceProgram {
  public:
@@ -24,14 +26,17 @@ class DeviceProgram {
 
   ~DeviceProgram() {
     for (size_t i = 0; i < m_kernel.size(); i++) {
-      clReleaseKernel(m_kernel.at(i));  // Release kernel.
+      clReleaseKernel(m_kernel.at(i).second);  // Release kernel.
     }
     clReleaseProgram(m_program);  // Release the program object.
   }
 
   cl_int CreateProgramWithSource(bool print_code = false) {
     if (convertToString()) {
-      if (print_code) std::cout << m_source << std::endl;
+      if (print_code) {
+        std::cout << "\n\n" << "Source code for kernel: " << m_filename << std::endl;
+        std::cout << m_source << std::endl << std::endl;
+      }
     } else {
       std::cerr << "Unable to parse code;";
       return false;
@@ -47,10 +52,11 @@ class DeviceProgram {
   cl_int BuildProgram(std::string compilerflags = "-Werror") {
     m_err = clBuildProgram(m_program, 1, m_device, compilerflags.c_str(), NULL,
                            NULL);
-    CHECKERROR("Call made to clBuildProgram.");
-    std::cout << "Printing BuildLog: \n";
-    std::cout << GetBuildLog();
+    if (m_err != CL_BUILD_PROGRAM_FAILURE)
+      CHECKERROR("Call made to clBuildProgram.");
 
+    std::cout << "BUildStatus: " << getoclerrordefs(m_err) << std::endl;
+    if (m_err == CL_BUILD_PROGRAM_FAILURE) std::cout << "Printing BuildLog: \n" << GetBuildLog() << std::endl;
     return m_err;
   };
 
@@ -92,8 +98,8 @@ class DeviceProgram {
   }
 
   cl_int CreateKernel(std::string name) {
-    m_kernelName.push_back(name);
-    m_kernel.push_back(clCreateKernel(m_program, name.c_str(), &m_err));
+    m_kernel.push_back(
+        std::make_pair(name, clCreateKernel(m_program, name.c_str(), &m_err)));
     CHECKERROR("Call made to clCreateKernel.");
     return m_err;
   }
@@ -103,8 +109,8 @@ class DeviceProgram {
     m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz, dim[0],
                                    dim[1], dim[2], 0, NULL, NULL);
 
-    if (blocking) WaitTillFinish();
     CHECKERROR("Call made to clEnqueueNDRangeKernel.");
+    if (blocking) WaitTillFinish();
     return m_err;
   }
 
@@ -112,7 +118,15 @@ class DeviceProgram {
 
   cl_program& GetProgram() { return m_program; }
   cl_kernel& GetKernel(std::string name) {
-    return (m_kernel.at(get_kernel_idx(name)));
+    for (size_t i = 0; i < m_kernel.size(); i++) {
+      if (m_kernel.at(i).first == name) {
+        return m_kernel.at(i).second;
+      }
+    }
+    m_err = -9999;
+    name = "Unable to find buffer: " + name;
+    CHECKERROR(name);
+    return m_kernel.at(0).second;
   }
 
  private:
@@ -122,8 +136,7 @@ class DeviceProgram {
 
   cl_program m_program;
 
-  std::vector<cl_kernel> m_kernel;
-  std::vector<std::string> m_kernelName;
+  std::vector<std::pair<std::string, cl_kernel>> m_kernel;
 
   std::string m_filename;
   std::string m_source;
@@ -131,14 +144,6 @@ class DeviceProgram {
   cl_int m_err;
   bool m_initialized;
 
-  size_t get_kernel_idx(std::string name) {
-    for (size_t i = 0; i < m_kernelName.size(); i++)
-      if (m_kernelName.at(i) == name) return i;
-    std::stringstream ss;
-    ss << "Kernel name not found: " << name;
-    throw oclException(ss.str(), -999, __FILE__, __LINE__, __func__);
-    throw "";
-  }
   /* convert the kernel file into a string */
   bool convertToString() {
     size_t size;

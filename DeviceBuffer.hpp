@@ -62,7 +62,7 @@ class DeviceBuffer {
     assert(m_sizeDevBuffer - offset > 0);
     assert(m_sizeHostBuffer - offset > 0);
     assert(m_sizeHostBuffer - m_sizeDevBuffer <= 0);
-    m_err = clEnqueueReadBuffer(
+    m_err = clEnqueueWriteBuffer(
         m_cmdQueue, m_devBuffer, blocking ? CL_TRUE : CL_FALSE, offset,
         m_sizeDevBuffer - offset, m_ptrHostBuffer, 0, NULL, NULL);
     CHECKERROR("Call made to clEnqueueReadBuffer.");
@@ -73,7 +73,7 @@ class DeviceBuffer {
     assert(m_sizeDevBuffer - offset > 0);
     assert(m_sizeHostBuffer - offset > 0);
     assert(m_sizeDevBuffer - m_sizeHostBuffer <= 0);
-    m_err = clEnqueueWriteBuffer(
+    m_err = clEnqueueReadBuffer(
         m_cmdQueue, m_devBuffer, blocking ? CL_TRUE : CL_FALSE, offset,
         m_sizeHostBuffer - offset, m_ptrHostBuffer, 0, NULL, NULL);
     CHECKERROR("Call made to clEnqueueWriteBuffer.");

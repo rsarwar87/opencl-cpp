@@ -11,6 +11,7 @@ set(_Boost_STACKTRACE_ADDR2LINE_HEADERS "boost/stacktrace.hpp")
 set(_Boost_STACKTRACE_NOOP_HEADERS      "boost/stacktrace.hpp")
 
 FIND_PACKAGE(Boost COMPONENTS stacktrace_backtrace REQUIRED )
+FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED )
 find_package(OpenCL REQUIRED)
 include_directories(${OpenCL_INCLUDE_DIRS})
 link_directories(${OpenCL_LIBRARY})
@@ -18,9 +19,9 @@ link_directories(${OpenCL_LIBRARY})
 include_directories(.)
 
 add_library (ocl-cpp SHARED lib.cpp)
-target_link_libraries (ocl-cpp ${OpenCL_LIBRARY} dl)
+target_link_libraries (ocl-cpp ${OpenCL_LIBRARY} dl )
 
 add_executable (test1 test.cpp) 
-target_link_libraries (test1 ${OpenCL_LIBRARY} dl)
+target_link_libraries (test1 ${OpenCL_LIBRARY} dl boost_program_options)
 
 
