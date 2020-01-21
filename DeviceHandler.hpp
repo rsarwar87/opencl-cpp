@@ -84,9 +84,9 @@ class DeviceHandler : public DeviceClass {
 
   cl_mem& CreateBuffer(std::string name, size_t sz, size_t qidx = 0, void* data = NULL,
                        MemType mem_type = READWRITE, bool sync = true,
-                       bool blocking = true, bool map = false) {
+                       bool blocking = true) {
     CheckIfInitialized();
-    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type, map,
+    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type, false,
                                         m_profiling, m_hostnotification);
 
     ptr->CreateDeviceBuffer(sz);
@@ -94,6 +94,25 @@ class DeviceHandler : public DeviceClass {
       ptr->SetHostBuffer(data, sz);
       if (sync) ptr->SyncDeviceBuffer(blocking);
     }
+    m_buffers.push_back(std::make_pair(name, ptr));
+    return ptr->GetDevBuffer();
+  }
+
+  void ReleaseBuffer(std::string name)
+  {
+    FindBuffer(name)->ReleaseMemory();
+  }
+
+  cl_mem& CreateMappedBuffer(std::string name, size_t sz, size_t qidx = 0,
+                             void* data = NULL, MemType mem_type = READWRITE,
+                             bool blocking = true, cl_uint wcount = 0,
+                             cl_event* ev = NULL, callbacktype* func = NULL,
+                             size_t offset = 0) {
+    CheckIfInitialized();
+    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type, true,
+                                        m_profiling, m_hostnotification);
+
+    data = ptr->CreateDeviceMappedBuffer(sz, blocking, wcount, ev, offset, func);
     m_buffers.push_back(std::make_pair(name, ptr));
     return ptr->GetDevBuffer();
   }

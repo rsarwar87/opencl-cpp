@@ -39,8 +39,11 @@ int main (int ac, char** av)
 	cout << "input string:" << endl;
 	cout << input << endl;
 	char *output = (char*)malloc(input.size() + 1);
-  mm->CreateBuffer("input", (input.size())* sizeof(char), qidx, (void*)input.c_str(), 
-                   READONLY);
+/*  mm->CreateBuffer("input", (input.size())* sizeof(char), qidx, (void*)input.c_str(), 
+                   READONLY);*/
+  void *data = NULL;
+  mm->CreateMappedBuffer("input", (input.size())* sizeof(char), qidx, data, READONLY);
+  memcpy ( data, input.c_str(), (input.size())* sizeof(char));
   mm->CreateBuffer("inter", (input.size() + 1)* sizeof(char), qidx, NULL, 
                    READWRITE, false);
   mm->CreateBuffer("output", (input.size() + 1)* sizeof(char), qidx, (void*)output, 

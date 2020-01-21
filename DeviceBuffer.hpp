@@ -35,11 +35,36 @@ class DeviceBuffer {
     AppendFlag(flg);
   }
 
-  ~DeviceBuffer() { clReleaseMemObject(m_devBuffer); }
+  ~DeviceBuffer() { 
+    ReleaseMemory();
+  }
+
+  void ReleaseMemory()
+  {
+    if (!m_map) clReleaseMemObject(m_devBuffer);
+    else clEnqueueUnmapMemObject(m_cmdQueue, m_devBuffer, m_ptrHostBuffer, 0, NULL, NULL);
+  }
+  void* CreateDeviceMappedBuffer(size_t sz,
+                                 bool blocking = false, cl_uint wcount = 0,
+                                 cl_event* ev = NULL, size_t offset = 0,
+                                 callbacktype* func = NULL) {
+    if (m_initialized == true) m_err = -9999;
+    assert(sz > 0);
+    m_sizeDevBuffer = sz;
+    m_ptrHostBuffer = clEnqueueMapBuffer(m_cmdQueue, m_devBuffer, blocking, m_flags,
+                                   offset, sz, wcount, ev, &m_event, &m_err);
+    std::cout << "started" << std::endl;
+    CHECKERROR("Call made to clCreateBuffer.");
+    if (m_err == CL_SUCCESS) m_initialized = true;
+    SetEventConfiguration(func, (void*)__func__);
+    CHECKERROR("Memory not initialized.");
+    return m_ptrHostBuffer;
+  }
 
   cl_int CreateDeviceBuffer(size_t sz) {
+    if (m_initialized == true) m_err = -9999;
+    CHECKERROR("Memory not initialized.");
     assert(sz > 0);
-    assert(m_flags > 0);
     m_sizeDevBuffer = sz;
     m_devBuffer =
         clCreateBuffer(m_context, m_flags, m_sizeDevBuffer, NULL, &m_err);
@@ -65,7 +90,8 @@ class DeviceBuffer {
 
   cl_int SyncDeviceBuffer(bool blocking, size_t offset = 0, cl_uint wcount = 0,
                           cl_event* ev = NULL, callbacktype* func = NULL) {
-    if (m_initialized == false) return false;
+    if (m_initialized == false || m_map) m_err = -9999;
+    CHECKERROR("Memory not initialized.");
     assert(m_sizeDevBuffer - offset > 0);
     assert(m_sizeHostBuffer - offset > 0);
     assert(m_sizeHostBuffer - m_sizeDevBuffer <= 0);
@@ -79,7 +105,8 @@ class DeviceBuffer {
   };
   cl_int SyncHostBuffer(cl_bool blocking, size_t offset = 0, cl_uint wcount = 0,
                         cl_event* ev = NULL, callbacktype* func = NULL) {
-    if (m_initialized == false) return false;
+    if (m_initialized == false || m_map) m_err = -9999;
+    CHECKERROR("Memory not initialized.");
     assert(m_sizeDevBuffer - offset > 0);
     assert(m_sizeHostBuffer - offset > 0);
     assert(m_sizeDevBuffer - m_sizeHostBuffer <= 0);
@@ -94,7 +121,8 @@ class DeviceBuffer {
   cl_int CopyBufferTo(cl_mem& dst, size_t sz, size_t offset_src = 0,
                       size_t offset_dst = 0, cl_uint wcount = 0,
                       cl_event* ev = NULL, callbacktype* func = NULL) {
-    if (m_initialized == false) return false;
+    if (m_initialized == false || m_map) m_err = -9999;
+    CHECKERROR("Memory not initialized.");
     assert(sz + offset_src <= m_sizeDevBuffer);
     m_err = clEnqueueCopyBuffer(m_cmdQueue, m_devBuffer, dst, offset_src,
                                 offset_dst, sz, wcount, ev, &m_event);
@@ -150,7 +178,7 @@ class DeviceBuffer {
       std::cout << "command completed" << status << std::endl;
     else
       std::cout << "command completed" << (char*)data << std::endl;
-    clReleaseEvent(e);
+    //clReleaseEvent(e);
     //  if (e != NULL) delete e;
   }
   static void CL_CALLBACK profiling_callback(cl_event e, cl_int status,
