@@ -84,9 +84,10 @@ class DeviceHandler : public DeviceClass {
 
   cl_mem& CreateBuffer(std::string name, size_t sz, size_t qidx = 0, void* data = NULL,
                        MemType mem_type = READWRITE, bool sync = true,
-                       bool blocking = true) {
+                       bool blocking = true, bool map = false) {
     CheckIfInitialized();
-    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type);
+    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type, map,
+                                        m_profiling, m_hostnotification);
 
     ptr->CreateDeviceBuffer(sz);
     if (data != NULL) {
@@ -98,11 +99,11 @@ class DeviceHandler : public DeviceClass {
   }
 
   void SyncBuffer(std::string name, bool c2h = true, bool blocking = true,
-                  size_t offset = 0) {
+                  size_t offset = 0, cl_uint wcount = 0, cl_event* ev = NULL) {
     if (!c2h)
-      FindBuffer(name)->SyncDeviceBuffer(blocking, offset);
+      FindBuffer(name)->SyncDeviceBuffer(blocking, offset, wcount, ev);
     else
-      FindBuffer(name)->SyncHostBuffer(blocking, offset);
+      FindBuffer(name)->SyncHostBuffer(blocking, offset, wcount, ev);
   }
 
   size_t PrepareContextCommandQueue(cl_device_type typ, bool in_order = false,
