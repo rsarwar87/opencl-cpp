@@ -24,8 +24,8 @@ class DeviceHandler : public DeviceClass {
 
   ~DeviceHandler() {
     if (m_initialized) {
-      clReleaseCommandQueue(m_queue);  // Release  Command queue.
-      clReleaseContext(m_ctx);         // Release context.
+      for (size_t i = 0; i < m_queues.size(); i++)
+        clReleaseCommandQueue(m_queues.at(i));         // Release context.
     }
     for (size_t i = 0; i < m_programs.size(); i++)
       if (m_programs.at(i).second != NULL) free(m_programs.at(i).second);
@@ -37,7 +37,7 @@ class DeviceHandler : public DeviceClass {
                      std::string compiler_flag = "-Werror",
                      bool print = false) {
     CheckIfInitialized();
-    DeviceProgram* ptr = new DeviceProgram(m_ctx, m_queue, m_device, fname,
+    DeviceProgram* ptr = new DeviceProgram(m_ctx, m_device, fname,
                                            m_profiling, m_hostnotification);
     m_programs.push_back(std::make_pair(name, ptr));
 
@@ -69,23 +69,24 @@ class DeviceHandler : public DeviceClass {
   }
 
   void RunKernel(std::string nprog, std::string nkernel, cl_uint dim_sz,
-                 std::array<size_t*, 3> dim, cl_event& ev,
+                 std::array<size_t*, 3> dim, cl_event& ev, size_t qidx = 0,
                  callbacktype* func = NULL, bool blocking = false,
                  cl_uint n_ev = 0, cl_event* w_ev = NULL,
                  const char* msg = NULL) {
-    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, ev, func, blocking,
-                                  n_ev, w_ev, msg);
+    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, ev, m_queues.at(qidx),
+                                  func, n_ev, w_ev, msg);
+    if (blocking) KernelWaitTillFinish(qidx);
   }
 
-  void KernelWaitTillFinish(std::string nprog) {
-    FindProgram(nprog)->WaitTillFinish();
+  void KernelWaitTillFinish(size_t qidx) {
+    clFinish(m_queues.at(qidx));
   }
 
-  cl_mem& CreateBuffer(std::string name, size_t sz, void* data = NULL,
+  cl_mem& CreateBuffer(std::string name, size_t sz, size_t qidx = 0, void* data = NULL,
                        MemType mem_type = READWRITE, bool sync = true,
                        bool blocking = true) {
     CheckIfInitialized();
-    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queue, mem_type);
+    DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type);
 
     ptr->CreateDeviceBuffer(sz);
     if (data != NULL) {
@@ -104,18 +105,20 @@ class DeviceHandler : public DeviceClass {
       FindBuffer(name)->SyncHostBuffer(blocking, offset);
   }
 
-  void PrepareContextCommandQueue(cl_device_type typ, bool in_order = false,
+  size_t PrepareContextCommandQueue(cl_device_type typ, bool in_order = false,
                                   size_t p_idx = 99, size_t d_idx = 99) {
-    SelectDevice(typ, p_idx, d_idx);
-    m_ctx = clCreateContext(0, 1, m_device, NULL, NULL, &m_err);
-    CHECKERROR("Creating context");
-
+    if (!m_initialized) {
+      SelectDevice(typ, p_idx, d_idx);
+      m_ctx = clCreateContext(0, 1, m_device, NULL, NULL, &m_err);
+      CHECKERROR("Creating context");
+    }
     cl_command_queue_properties prop = 0;
     prop = in_order ? CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE : prop;
     prop |= m_profiling ? CL_QUEUE_PROFILING_ENABLE : prop;
-    m_queue = clCreateCommandQueue(m_ctx, m_device[0], prop, &m_err);
+    m_queues.push_back(clCreateCommandQueue(m_ctx, m_device[0], prop, &m_err));
     CHECKERROR("Creating CommandQueue");
     m_initialized = true;
+    return m_queues.size() - 1;
   }
 
   DeviceBuffer* FindBuffer(std::string name) {
@@ -149,7 +152,7 @@ class DeviceHandler : public DeviceClass {
 
  private:
   cl_context m_ctx;
-  cl_command_queue m_queue;
+  std::vector<cl_command_queue> m_queues;
   cl_device_id* m_device;
   cl_context_properties m_ctx_prop[3];
   cl_int m_err;

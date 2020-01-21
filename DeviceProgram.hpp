@@ -17,10 +17,10 @@ typedef void (*callbacktype)(cl_event, cl_int, void*);
 
 class DeviceProgram {
  public:
-  DeviceProgram(cl_context& ctx, cl_command_queue& queue, cl_device_id* dev,
+  DeviceProgram(cl_context& ctx, cl_device_id* dev,
                 std::string fn, bool profiling = false,
                 bool hostnotification = false)
-      : m_context(ctx), m_cmdQueue(queue) {
+      : m_context(ctx) {
     m_device = dev;
     m_filename = fn;
     m_profiling = profiling;
@@ -118,10 +118,10 @@ class DeviceProgram {
   }
 
   cl_int RunKernel(std::string name, cl_uint dim_sz, std::array<size_t*, 3> dim,
-                   cl_event& ev, callbacktype* func = NULL,
-                   bool blocking = false, cl_uint n_ev = 0,
+                   cl_event& ev, cl_command_queue& m_queue,
+                   callbacktype* func = NULL, cl_uint n_ev = 0,
                    cl_event* w_ev = NULL, const char* msg = NULL) {
-    m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz, dim[0],
+    m_err = clEnqueueNDRangeKernel(m_queue, GetKernel(name), dim_sz, dim[0],
                                    dim[1], dim[2], n_ev, w_ev, &ev);
 
     CHECKERROR("Call made to clEnqueueNDRangeKernel.");
@@ -140,11 +140,9 @@ class DeviceProgram {
       CHECKERROR("Call made to clSetEventCallback.");
     }
 
-    if (blocking) WaitTillFinish();
     return m_err;
   }
 
-  void WaitTillFinish() { clFinish(m_cmdQueue); }
 
   cl_program& GetProgram() { return m_program; }
   cl_kernel& GetKernel(std::string name) {
@@ -162,7 +160,6 @@ class DeviceProgram {
  private:
   cl_context& m_context;
   cl_device_id* m_device;
-  cl_command_queue& m_cmdQueue;
 
   cl_program m_program;
 
