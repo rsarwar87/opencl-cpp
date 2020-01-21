@@ -52,8 +52,7 @@ class DeviceHandler : public DeviceClass {
     ptr->CreateKernel(nkernel);
 
     for (size_t i = 0; i < args.size(); i++) {
-      if (args.at(i) == "NULL")
-      {
+      if (args.at(i) == "NULL") {
         ptr->AssignLocalArgument(nkernel, i, sz.at(i));
         continue;
       }
@@ -65,10 +64,11 @@ class DeviceHandler : public DeviceClass {
 
   void RunKernel(std::string nprog, std::string nkernel, cl_uint dim_sz,
                  std::array<size_t*, 3> dim, cl_event& ev,
-                 bool blocking = false, cl_uint n_ev = 0, cl_event* w_ev = NULL,
+                 callbacktype* func = NULL, bool blocking = false,
+                 cl_uint n_ev = 0, cl_event* w_ev = NULL,
                  const char* msg = NULL) {
-    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, ev, blocking, n_ev,
-                                  w_ev, msg);
+    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, ev, func, blocking,
+                                  n_ev, w_ev, msg);
   }
 
   void KernelWaitTillFinish(std::string nprog) {
@@ -99,8 +99,7 @@ class DeviceHandler : public DeviceClass {
   }
 
   void PrepareContextCommandQueue(cl_device_type typ, bool in_order = false,
-                                  size_t p_idx = 99,
-                                  size_t d_idx = 99) {
+                                  size_t p_idx = 99, size_t d_idx = 99) {
     SelectDevice(typ, p_idx, d_idx);
     m_ctx = clCreateContext(0, 1, m_device, NULL, NULL, &m_err);
     CHECKERROR("Creating context");
@@ -139,8 +138,9 @@ class DeviceHandler : public DeviceClass {
     return NULL;
   }
 
-  void set_profiling(bool val) {m_profiling = val;}
-  void set_hostnotification(bool val) {m_hostnotification = val;}
+  void set_profiling(bool val) { m_profiling = val; }
+  void set_hostnotification(bool val) { m_hostnotification = val; }
+
  private:
   cl_context m_ctx;
   cl_command_queue m_queue;

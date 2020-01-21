@@ -7,16 +7,19 @@
 #include <DeviceError.hpp>
 #include <array>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <utility>
 #include <vector>
 
+typedef void (*callbacktype)(cl_event, cl_int, void*);
 
 class DeviceProgram {
  public:
   DeviceProgram(cl_context& ctx, cl_command_queue& queue, cl_device_id* dev,
-                std::string fn, bool profiling = false, bool hostnotification = false)
+                std::string fn, bool profiling = false,
+                bool hostnotification = false)
       : m_context(ctx), m_cmdQueue(queue) {
     m_device = dev;
     m_filename = fn;
@@ -35,7 +38,8 @@ class DeviceProgram {
   cl_int CreateProgramWithSource(bool print_code = false) {
     if (convertToString()) {
       if (print_code) {
-        std::cout << "\n\n" << "Source code for kernel: " << m_filename << std::endl;
+        std::cout << "\n\n"
+                  << "Source code for kernel: " << m_filename << std::endl;
         std::cout << m_source << std::endl << std::endl;
       }
     } else {
@@ -57,7 +61,8 @@ class DeviceProgram {
       CHECKERROR("Call made to clBuildProgram.");
 
     std::cout << "BUildStatus: " << getoclerrordefs(m_err) << std::endl;
-    if (m_err == CL_BUILD_PROGRAM_FAILURE) std::cout << "Printing BuildLog: \n" << GetBuildLog() << std::endl;
+    if (m_err == CL_BUILD_PROGRAM_FAILURE)
+      std::cout << "Printing BuildLog: \n" << GetBuildLog() << std::endl;
     return m_err;
   };
 
@@ -97,8 +102,10 @@ class DeviceProgram {
     return m_err;
   }
   template <class T>
-  cl_int AssignArgument(std::string name, cl_uint idx, T& buffer, size_t sz = 1) {
-    m_err = clSetKernelArg(GetKernel(name), idx, sizeof(T) * sz, (void*)&buffer);
+  cl_int AssignArgument(std::string name, cl_uint idx, T& buffer,
+                        size_t sz = 1) {
+    m_err =
+        clSetKernelArg(GetKernel(name), idx, sizeof(T) * sz, (void*)&buffer);
     CHECKERROR("Call made to clSetKernelArg.");
     return m_err;
   }
@@ -111,36 +118,28 @@ class DeviceProgram {
   }
 
   cl_int RunKernel(std::string name, cl_uint dim_sz, std::array<size_t*, 3> dim,
-                   cl_event& ev, bool blocking = false, cl_uint n_ev = 0,
-                   cl_event* w_ev = NULL,
-                   const char* msg = NULL) {
-
-    m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz,
-                dim[0],
-                dim[1],
-                dim[2],
-                n_ev, w_ev, &ev);
+                   cl_event& ev, callbacktype* func = NULL,
+                   bool blocking = false, cl_uint n_ev = 0,
+                   cl_event* w_ev = NULL, const char* msg = NULL) {
+    m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz, dim[0],
+                                   dim[1], dim[2], n_ev, w_ev, &ev);
 
     CHECKERROR("Call made to clEnqueueNDRangeKernel.");
-    if (m_hostnotification == true) 
-    {
-      if (0)
-      {
-//        m_err = clSetEventCallback(ev, CL_COMPLETE, function, (void*)msg);
+    if (m_hostnotification == true) {
+      if (func != NULL) {
+        m_err = clSetEventCallback(ev, CL_COMPLETE, *func, (void*)msg);
+        CHECKERROR("Call made to clSetEventCallback.");
+      } else {
+        m_err =
+            clSetEventCallback(ev, CL_COMPLETE, &default_callback, (void*)msg);
         CHECKERROR("Call made to clSetEventCallback.");
       }
-      else
-      {
-        m_err = clSetEventCallback(ev, CL_COMPLETE, &default_callback, (void*)msg);
-        CHECKERROR("Call made to clSetEventCallback.");
-      }
-    }
-    else if (m_profiling == true) 
-    {
-      m_err = clSetEventCallback(ev, CL_COMPLETE, &profiling_callback, (void*)msg);
+    } else if (m_profiling == true) {
+      m_err =
+          clSetEventCallback(ev, CL_COMPLETE, &profiling_callback, (void*)msg);
       CHECKERROR("Call made to clSetEventCallback.");
     }
-    
+
     if (blocking) WaitTillFinish();
     return m_err;
   }
@@ -177,25 +176,29 @@ class DeviceProgram {
   bool m_profiling;
   bool m_hostnotification;
 
-  static void CL_CALLBACK profiling_callback(cl_event e, cl_int status, void* data)
-  {
+  static void CL_CALLBACK profiling_callback(cl_event e, cl_int status,
+                                             void* data) {
     cl_int m_err = CL_SUCCESS;
     cl_ulong start = 0, end = 0;
-    m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start, NULL);
+    m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START,
+                                    sizeof(cl_ulong), &start, NULL);
     CHECKERROR("READING START TIME");
-    m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL);
+    m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
+                                    sizeof(cl_ulong), &end, NULL);
     CHECKERROR("READING ENDTIME TIME");
     printf("Average read time: %lu\n", end - start);
-    
-  //  if (e != NULL) delete e;
+
+    //  if (e != NULL) delete e;
   }
 
-  static void CL_CALLBACK default_callback(cl_event e, cl_int status, void* data)
-  {
-    if (data == NULL) std::cout << "command completed" << status << std::endl;
-    else std::cout << "command completed" << (char*) data << std::endl;
+  static void CL_CALLBACK default_callback(cl_event e, cl_int status,
+                                           void* data) {
+    if (data == NULL)
+      std::cout << "command completed" << status << std::endl;
+    else
+      std::cout << "command completed" << (char*)data << std::endl;
     clReleaseEvent(e);
-  //  if (e != NULL) delete e;
+    //  if (e != NULL) delete e;
   }
 
   /* convert the kernel file into a string */
