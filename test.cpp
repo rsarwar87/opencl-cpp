@@ -32,7 +32,7 @@ int main (int ac, char** av)
   mm->set_profiling(true); 
 //  mm->set_hostnotification(true); 
   mm->PrintPlatformData();
-  mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_CPU);
+  mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
   mm->CreateProgram("Test1", fname);
 
   std::string input = "GdkknVnqkc";
@@ -40,15 +40,18 @@ int main (int ac, char** av)
 	cout << input << endl;
 	char *output = (char*)malloc(input.size() + 1);
   mm->CreateBuffer("input", (input.size())* sizeof(char), (void*)input.c_str(), 
-                   READWRITE);
+                   READONLY);
+  mm->CreateBuffer("inter", (input.size() + 1)* sizeof(char), NULL, 
+                   READWRITE, false);
   mm->CreateBuffer("output", (input.size() + 1)* sizeof(char), (void*)output, 
                    WRITEONLY, false);
-  mm->CreateKernel("Test1", "helloworld", {"input", "output"}); 
+  mm->CreateKernel("Test1", "helloworld", {"input", "inter"}); 
+  mm->CreateKernel("Test1", "helloworld2", {"inter", "output"}); 
   size_t sz[1] = {input.size()};
   cl_event ev[3];
   mm->CreateUserEvent(ev[0]);
   mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL}, ev[1], NULL, false, 1, &ev[0]);
-  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL}, ev[2], NULL, false, 1, &ev[1]);
+  mm->RunKernel("Test1", "helloworld2", 1, {NULL, sz, NULL}, ev[2], NULL, false, 1, &ev[1]);
   clSetUserEventStatus(ev[0], CL_SUCCESS);
   mm->SyncBuffer("output");
 	output[input.size()] = '\0'; //Add the terminal character to the end of output.
