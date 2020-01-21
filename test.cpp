@@ -30,7 +30,7 @@ int main (int ac, char** av)
 
   DeviceHandler* mm = new DeviceHandler();
   mm->set_profiling(true); 
-  mm->set_hostnotification(true); 
+//  mm->set_hostnotification(true); 
   mm->PrintPlatformData();
   mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
   mm->CreateProgram("Test1", fname);
