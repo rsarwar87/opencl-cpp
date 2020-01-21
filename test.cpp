@@ -29,6 +29,8 @@ int main (int ac, char** av)
   }
 
   DeviceHandler* mm = new DeviceHandler();
+  mm->set_profiling(true); 
+  mm->set_hostnotification(true); 
   mm->PrintPlatformData();
   mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
   mm->CreateProgram("Test1", fname);
@@ -37,14 +39,14 @@ int main (int ac, char** av)
 	cout << "input string:" << endl;
 	cout << input << endl;
 	char *output = (char*)malloc(input.size() + 1);
-  
   mm->CreateBuffer("input", (input.size())* sizeof(char), (void*)input.c_str(), 
                    READWRITE);
   mm->CreateBuffer("output", (input.size() + 1)* sizeof(char), (void*)output, 
                    WRITEONLY, false);
   mm->CreateKernel("Test1", "helloworld", {"input", "output"}); 
   size_t sz[1] = {input.size()};
-  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL});
+  cl_event ev;
+  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL}, ev);
   mm->SyncBuffer("output");
 	output[input.size()] = '\0'; //Add the terminal character to the end of output.
 	cout << "\noutput string:" << endl;

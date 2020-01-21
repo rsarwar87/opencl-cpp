@@ -16,11 +16,12 @@
 class DeviceProgram {
  public:
   DeviceProgram(cl_context& ctx, cl_command_queue& queue, cl_device_id* dev,
-                std::string fn)
+                std::string fn, bool profiling = false, bool hostnotification = false)
       : m_context(ctx), m_cmdQueue(queue) {
     m_device = dev;
     m_filename = fn;
-    m_initialized = false;
+    m_profiling = profiling;
+    m_hostnotification = hostnotification;
     m_err = CL_SUCCESS;
   }
 
@@ -109,14 +110,37 @@ class DeviceProgram {
     return m_err;
   }
 
-  cl_int RunKernel(std::string name, cl_uint dim_sz,
-                   std::array<size_t*, 3> dim, bool blocking = false) {
+  cl_int RunKernel(std::string name, cl_uint dim_sz, std::array<size_t*, 3> dim,
+                   cl_event& ev, bool blocking = false, cl_uint n_ev = 0,
+                   cl_event* w_ev = NULL,
+                   const char* msg = NULL) {
+
     m_err = clEnqueueNDRangeKernel(m_cmdQueue, GetKernel(name), dim_sz,
                 dim[0],
                 dim[1],
                 dim[2],
-                0, NULL, NULL);
+                n_ev, w_ev, &ev);
+
     CHECKERROR("Call made to clEnqueueNDRangeKernel.");
+    if (m_hostnotification == true) 
+    {
+      if (0)
+      {
+//        m_err = clSetEventCallback(ev, CL_COMPLETE, function, (void*)msg);
+        CHECKERROR("Call made to clSetEventCallback.");
+      }
+      else
+      {
+        m_err = clSetEventCallback(ev, CL_COMPLETE, &default_callback, (void*)msg);
+        CHECKERROR("Call made to clSetEventCallback.");
+      }
+    }
+    else if (m_profiling == true) 
+    {
+      m_err = clSetEventCallback(ev, CL_COMPLETE, &profiling_callback, (void*)msg);
+      CHECKERROR("Call made to clSetEventCallback.");
+    }
+    
     if (blocking) WaitTillFinish();
     return m_err;
   }
@@ -150,6 +174,29 @@ class DeviceProgram {
 
   cl_int m_err;
   bool m_initialized;
+  bool m_profiling;
+  bool m_hostnotification;
+
+  static void CL_CALLBACK profiling_callback(cl_event e, cl_int status, void* data)
+  {
+    cl_int m_err = CL_SUCCESS;
+    cl_ulong start = 0, end = 0;
+    m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start, NULL);
+    CHECKERROR("READING START TIME");
+    m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL);
+    CHECKERROR("READING ENDTIME TIME");
+    printf("Average read time: %lu\n", end - start);
+    
+  //  if (e != NULL) delete e;
+  }
+
+  static void CL_CALLBACK default_callback(cl_event e, cl_int status, void* data)
+  {
+    if (data == NULL) std::cout << "command completed" << status << std::endl;
+    else std::cout << "command completed" << (char*) data << std::endl;
+    clReleaseEvent(e);
+  //  if (e != NULL) delete e;
+  }
 
   /* convert the kernel file into a string */
   bool convertToString() {

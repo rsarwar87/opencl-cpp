@@ -16,7 +16,11 @@ using namespace oclParser;
 
 class DeviceHandler : public DeviceClass {
  public:
-  DeviceHandler() : DeviceClass() {}
+  DeviceHandler(bool profiling = false, bool hostnotification = false)
+      : DeviceClass() {
+    m_profiling = profiling;
+    m_hostnotification = hostnotification;
+  }
 
   ~DeviceHandler() {
     if (m_initialized) {
@@ -30,9 +34,11 @@ class DeviceHandler : public DeviceClass {
   }
 
   void CreateProgram(std::string name, std::string fname,
-                     std::string compiler_flag = "-Werror", bool print = false) {
+                     std::string compiler_flag = "-Werror",
+                     bool print = false) {
     CheckIfInitialized();
-    DeviceProgram* ptr = new DeviceProgram(m_ctx, m_queue, m_device, fname);
+    DeviceProgram* ptr = new DeviceProgram(m_ctx, m_queue, m_device, fname,
+                                           m_profiling, m_hostnotification);
     m_programs.push_back(std::make_pair(name, ptr));
 
     ptr->CreateProgramWithSource(print);
@@ -40,7 +46,8 @@ class DeviceHandler : public DeviceClass {
   }
 
   void CreateKernel(std::string nprog, std::string nkernel,
-                    std::vector<std::string> args, std::vector<size_t> sz = {}) {
+                    std::vector<std::string> args,
+                    std::vector<size_t> sz = {}) {
     DeviceProgram* ptr = FindProgram(nprog);
     ptr->CreateKernel(nkernel);
 
@@ -57,8 +64,11 @@ class DeviceHandler : public DeviceClass {
   }
 
   void RunKernel(std::string nprog, std::string nkernel, cl_uint dim_sz,
-                 std::array<size_t*, 3> dim, bool blocking = false) {
-    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, blocking);
+                 std::array<size_t*, 3> dim, cl_event& ev,
+                 bool blocking = false, cl_uint n_ev = 0, cl_event* w_ev = NULL,
+                 const char* msg = NULL) {
+    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, ev, blocking, n_ev,
+                                  w_ev, msg);
   }
 
   void KernelWaitTillFinish(std::string nprog) {
@@ -89,7 +99,7 @@ class DeviceHandler : public DeviceClass {
   }
 
   void PrepareContextCommandQueue(cl_device_type typ, bool in_order = false,
-                                  bool profiling = false, size_t p_idx = 99,
+                                  size_t p_idx = 99,
                                   size_t d_idx = 99) {
     SelectDevice(typ, p_idx, d_idx);
     m_ctx = clCreateContext(0, 1, m_device, NULL, NULL, &m_err);
@@ -97,7 +107,7 @@ class DeviceHandler : public DeviceClass {
 
     cl_command_queue_properties prop = 0;
     prop = in_order ? CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE : prop;
-    prop = profiling ? CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE : prop;
+    prop |= m_profiling ? CL_QUEUE_PROFILING_ENABLE : prop;
     m_queue = clCreateCommandQueue(m_ctx, m_device[0], prop, &m_err);
     CHECKERROR("Creating CommandQueue");
     m_initialized = true;
@@ -129,6 +139,8 @@ class DeviceHandler : public DeviceClass {
     return NULL;
   }
 
+  void set_profiling(bool val) {m_profiling = val;}
+  void set_hostnotification(bool val) {m_hostnotification = val;}
  private:
   cl_context m_ctx;
   cl_command_queue m_queue;
@@ -138,6 +150,9 @@ class DeviceHandler : public DeviceClass {
   bool m_initialized;
   std::vector<std::pair<std::string, DeviceProgram*>> m_programs;
   std::vector<std::pair<std::string, DeviceBuffer*>> m_buffers;
+
+  bool m_profiling;
+  bool m_hostnotification;
 
   void SelectDevice(cl_device_type typ, size_t p_idx = 99, size_t d_idx = 99) {
     m_err = -999;
