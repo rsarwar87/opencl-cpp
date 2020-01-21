@@ -62,6 +62,12 @@ class DeviceHandler : public DeviceClass {
     }
   }
 
+  void CreateUserEvent(cl_event &ev)
+  {
+    ev = clCreateUserEvent(m_ctx, &m_err);
+    CHECKERROR("Creating User event ");
+  }
+
   void RunKernel(std::string nprog, std::string nkernel, cl_uint dim_sz,
                  std::array<size_t*, 3> dim, cl_event& ev,
                  callbacktype* func = NULL, bool blocking = false,

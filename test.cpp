@@ -32,7 +32,7 @@ int main (int ac, char** av)
   mm->set_profiling(true); 
 //  mm->set_hostnotification(true); 
   mm->PrintPlatformData();
-  mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
+  mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_CPU);
   mm->CreateProgram("Test1", fname);
 
   std::string input = "GdkknVnqkc";
@@ -45,8 +45,11 @@ int main (int ac, char** av)
                    WRITEONLY, false);
   mm->CreateKernel("Test1", "helloworld", {"input", "output"}); 
   size_t sz[1] = {input.size()};
-  cl_event ev;
-  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL}, ev);
+  cl_event ev[3];
+  mm->CreateUserEvent(ev[0]);
+  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL}, ev[1], NULL, false, 1, &ev[0]);
+  mm->RunKernel("Test1", "helloworld", 1, {NULL, sz, NULL}, ev[2], NULL, false, 1, &ev[1]);
+  clSetUserEventStatus(ev[0], CL_SUCCESS);
   mm->SyncBuffer("output");
 	output[input.size()] = '\0'; //Add the terminal character to the end of output.
 	cout << "\noutput string:" << endl;

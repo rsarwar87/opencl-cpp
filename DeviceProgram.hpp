@@ -186,7 +186,7 @@ class DeviceProgram {
     m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                     sizeof(cl_ulong), &end, NULL);
     CHECKERROR("READING ENDTIME TIME");
-    printf("Average read time: %lu\n", end - start);
+    printf("Average execution time: %lu\n", end - start);
 
     //  if (e != NULL) delete e;
   }

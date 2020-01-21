@@ -136,7 +136,8 @@ class oclException : public exception {
     userMessage.append(to_string(lineno));
     userMessage.append(")] [");
     userMessage.append(getoclerrordefs(err_c));
-    userMessage.append("] ");
+    userMessage.append("] \n\t");
+    userMessage.append(message);
   //  userMessage.append(strerror(errno));
     userMessage.append("\n Stactrace:\n");
     std::stringstream ss;
