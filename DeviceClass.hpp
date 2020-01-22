@@ -213,7 +213,7 @@ class DeviceClass {
     GETDAT(preferred_vector_width_long)
     GETDAT(preferred_vector_width_short)
     GETDAT(double_fp_config)
-    GETDAT(half_fp_config)
+    //GETDAT(half_fp_config)
     GETDAT(local_mem_type)
     GETDAT(execution_capabilities)
     GETDAT2(max_work_item_sizes)

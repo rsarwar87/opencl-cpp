@@ -20,6 +20,7 @@ class DeviceHandler : public DeviceClass {
       : DeviceClass() {
     m_profiling = profiling;
     m_hostnotification = hostnotification;
+    m_err = 0;
   }
 
   ~DeviceHandler() {
@@ -83,16 +84,22 @@ class DeviceHandler : public DeviceClass {
   }
 
   cl_mem& CreateBuffer(std::string name, size_t sz, size_t qidx = 0, void* data = NULL,
-                       MemType mem_type = READWRITE, bool sync = true,
+                       MemType mem_type = READWRITE, bool pinned = true, bool sync = true,
                        bool blocking = true) {
     CheckIfInitialized();
+    if (pinned && data != NULL) m_err = -999;
+    CHECKERROR("Pinned memory must have NULL data pointer to return the allocated ptr");
+
     DeviceBuffer* ptr = new DeviceBuffer(m_ctx, m_queues.at(qidx), mem_type, 
                                         m_profiling, m_hostnotification);
+    if (pinned) ptr->AppendFlag(ALCHOSTPTR);
 
-    ptr->SetHostBuffer(data, sz);
+    ptr->SetHostBuffer(pinned ? NULL : data, sz);
     ptr->CreateDeviceBuffer(sz);
-    if (data != NULL) {
-      if (sync) ptr->SyncDeviceBuffer(blocking);
+    if (data != NULL && pinned == false) {
+      if (sync) 
+        if (mem_type != WRITEONLY) ptr->SyncDeviceBuffer(blocking);
+        else ptr->SyncHostBuffer(blocking);
     }
     m_buffers.push_back(std::make_pair(name, ptr));
     return ptr->GetDevBuffer();
@@ -177,7 +184,6 @@ class DeviceHandler : public DeviceClass {
   bool m_hostnotification;
 
   void SelectDevice(cl_device_type typ, size_t p_idx = 99, size_t d_idx = 99) {
-    m_err = -999;
     std::stringstream ss;
     if (p_idx == 99 && d_idx == 99) {
       for (uint32_t p = 0; p < m_platforms.m_nPlatforms; ++p) {
@@ -189,21 +195,26 @@ class DeviceHandler : public DeviceClass {
         }
       }
       ss << "Could not find the requested device tupe: " << typ << std::endl;
+      m_err = -999;
       CHECKERROR(ss.str());
     } else if (p_idx == 99 || d_idx == 99) {
+      m_err = -999;
       ss << "invalid parameters: p_idx= " << p_idx << " d_idx= " << d_idx
          << std::endl;
       CHECKERROR(ss.str());
     } else {
       if (m_platforms.m_nPlatforms < p_idx) {
+        m_err = -999;
         ss << "invalid platform id: requested= " << p_idx
            << " available= " << m_platforms.m_nPlatforms << std::endl;
         CHECKERROR(ss.str());
       } else if (m_platforms.m_dev_count[p_idx] < d_idx) {
+        m_err = -999;
         ss << "invalid device id: requested= " << p_idx
            << " available= " << m_platforms.m_dev_count[p_idx] << std::endl;
         CHECKERROR(ss.str());
       } else if (m_platforms.m_ddata[p_idx][d_idx].m_type.value != typ) {
+        m_err = -999;
         ss << "invalid device type: requested= " << typ
            << " available= " << m_platforms.m_ddata[p_idx][d_idx].m_type.value
            << std::endl;
@@ -214,8 +225,8 @@ class DeviceHandler : public DeviceClass {
   }
 
   void CheckIfInitialized() {
-    m_err = -999;
     if (!m_initialized) {
+      m_err = -999;
       std::stringstream ss;
       ss << "Device not initialized" << std::endl;
       CHECKERROR(ss.str());

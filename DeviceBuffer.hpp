@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <DeviceError.hpp>
 #include <iostream>
+#include <chrono>
 
 enum ObjType { Object, Image, Reat };
 
@@ -32,6 +33,7 @@ class DeviceBuffer {
     m_err = CL_SUCCESS;
     m_profiling = profiling;
     m_hostnotification = hostnotification;
+    m_flags_map = 0;
     AppendFlag(flg);
   }
 
@@ -49,13 +51,14 @@ class DeviceBuffer {
                                  callbacktype* func = NULL) {
     if (m_initialized == false) m_err = -9999;
     CHECKERROR("Memory not initialized.");
-    m_ptrHostBuffer = clEnqueueMapBuffer(m_cmdQueue, m_devBuffer, blocking, CL_MAP_WRITE,
+    m_ptrHostBuffer = clEnqueueMapBuffer(m_cmdQueue, m_devBuffer, blocking, m_flags_map,
                                    offset, m_sizeDevBuffer, wcount, ev, &m_event, &m_err);
     std::cout << "started" << std::endl;
     CHECKERROR("Call made to clEnqueueMapBuffer.");
     if (m_err == CL_SUCCESS) m_initialized = true;
     SetEventConfiguration(func, (void*)__func__);
     CHECKERROR("Memory not initialized.");
+    m_map = true;
     return m_ptrHostBuffer;
   }
 
@@ -65,7 +68,7 @@ class DeviceBuffer {
     assert(sz > 0);
     m_sizeDevBuffer = sz;
     m_devBuffer =
-        clCreateBuffer(m_context, m_flags | CL_MEM_ALLOC_HOST_PTR, m_sizeDevBuffer, NULL, &m_err);
+        clCreateBuffer(m_context, m_flags, m_sizeDevBuffer, NULL, &m_err);
     CHECKERROR("Call made to clCreateBuffer.");
     if (m_err == CL_SUCCESS) m_initialized = true;
     return m_err;
@@ -73,17 +76,27 @@ class DeviceBuffer {
 
   void AppendFlag(MemType flg) {
     if (flg == READONLY)
+    {
       m_flags |= CL_MEM_READ_ONLY;
+      m_flags_map |= CL_MAP_READ;
+    }
     else if (flg == WRITEONLY)
+    {
       m_flags |= CL_MEM_WRITE_ONLY;
+      m_flags_map |= CL_MAP_WRITE;
+    }
     else if (flg == READWRITE)
+    {
       m_flags |= CL_MEM_READ_WRITE;
+      m_flags_map |= CL_MAP_WRITE;
+      m_flags_map |= CL_MAP_READ;
+    }
     else if (flg == CPYHOSTPTR)
       m_flags |= CL_MEM_COPY_HOST_PTR;
     else if (flg == ALCHOSTPTR)
       m_flags |= CL_MEM_ALLOC_HOST_PTR;
     else if (flg == USEHOSTPTR)
-      m_flags |= CL_MEM_COPY_HOST_PTR;
+      m_flags |= CL_MEM_USE_HOST_PTR;
   }
 
   cl_int SyncDeviceBuffer(bool blocking, size_t offset = 0, cl_uint wcount = 0,
@@ -99,7 +112,6 @@ class DeviceBuffer {
         m_sizeDevBuffer - offset, m_ptrHostBuffer, wcount, ev, &m_event);
     CHECKERROR("Call made to clEnqueueReadBuffer.");
     SetEventConfiguration(func, (void*)__func__);
-    m_map = true;
     return m_err;
   };
   cl_int SyncHostBuffer(cl_bool blocking, size_t offset = 0, cl_uint wcount = 0,
@@ -143,6 +155,7 @@ class DeviceBuffer {
   cl_context& m_context;
   cl_command_queue& m_cmdQueue;
   cl_mem_flags m_flags;
+  cl_map_flags m_flags_map;
   size_t m_sizeHostBuffer;
   size_t m_sizeDevBuffer;
   cl_mem m_devBuffer;
@@ -182,6 +195,8 @@ class DeviceBuffer {
   }
   static void CL_CALLBACK profiling_callback(cl_event e, cl_int status,
                                              void* data) {
+    using namespace std::chrono_literals;
+    auto starttime = std::chrono::high_resolution_clock::now();
     cl_int m_err = CL_SUCCESS;
     cl_ulong start = 0, end = 0;
     m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START,
@@ -190,7 +205,7 @@ class DeviceBuffer {
     m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                     sizeof(cl_ulong), &end, NULL);
     CHECKERROR("READING ENDTIME TIME");
-    printf("Average transfer, %s, time: %lu\n", (const char*)data, end - start);
+    printf("Average transfer, %s, time: %lu (%lu)\n", (const char*)data, end - start, starttime);
 
     //  if (e != NULL) delete e;
   }

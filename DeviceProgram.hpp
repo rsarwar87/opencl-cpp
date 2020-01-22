@@ -175,6 +175,8 @@ class DeviceProgram {
 
   static void CL_CALLBACK profiling_callback(cl_event e, cl_int status,
                                              void* data) {
+    using namespace std::chrono_literals;
+    auto starttime = std::chrono::high_resolution_clock::now();
     cl_int m_err = CL_SUCCESS;
     cl_ulong start = 0, end = 0;
     m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START,
@@ -183,7 +185,7 @@ class DeviceProgram {
     m_err = clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                     sizeof(cl_ulong), &end, NULL);
     CHECKERROR("READING ENDTIME TIME");
-    printf("Average execution time: %lu\n", end - start);
+    printf("Average execution time: %lu (%lu)\n", end - start, starttime);
 
     //  if (e != NULL) delete e;
   }
