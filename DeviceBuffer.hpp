@@ -21,14 +21,14 @@ typedef void (*callbacktype)(cl_event, cl_int, void*);
 class DeviceBuffer {
  public:
   DeviceBuffer(cl_context& ctx, cl_command_queue& queue,
-               MemType flg = READWRITE, bool map = false, bool profiling = true,
+               MemType flg = READWRITE, bool profiling = true,
                bool hostnotification = false)
       : m_context(ctx), m_cmdQueue(queue) {
     m_flags = 0;
     m_sizeHostBuffer = 0;
     m_sizeDevBuffer = 0;
     m_initialized = false;
-    m_map = map;
+    m_map = false;
     m_err = CL_SUCCESS;
     m_profiling = profiling;
     m_hostnotification = hostnotification;
@@ -44,17 +44,15 @@ class DeviceBuffer {
     if (!m_map) clReleaseMemObject(m_devBuffer);
     else clEnqueueUnmapMemObject(m_cmdQueue, m_devBuffer, m_ptrHostBuffer, 0, NULL, NULL);
   }
-  void* CreateDeviceMappedBuffer(size_t sz,
-                                 bool blocking = false, cl_uint wcount = 0,
+  void* CreateMappedBuffer(bool blocking = false, cl_uint wcount = 0,
                                  cl_event* ev = NULL, size_t offset = 0,
                                  callbacktype* func = NULL) {
-    if (m_initialized == true) m_err = -9999;
-    assert(sz > 0);
-    m_sizeDevBuffer = sz;
-    m_ptrHostBuffer = clEnqueueMapBuffer(m_cmdQueue, m_devBuffer, blocking, m_flags,
-                                   offset, sz, wcount, ev, &m_event, &m_err);
+    if (m_initialized == false) m_err = -9999;
+    CHECKERROR("Memory not initialized.");
+    m_ptrHostBuffer = clEnqueueMapBuffer(m_cmdQueue, m_devBuffer, blocking, CL_MAP_WRITE,
+                                   offset, m_sizeDevBuffer, wcount, ev, &m_event, &m_err);
     std::cout << "started" << std::endl;
-    CHECKERROR("Call made to clCreateBuffer.");
+    CHECKERROR("Call made to clEnqueueMapBuffer.");
     if (m_err == CL_SUCCESS) m_initialized = true;
     SetEventConfiguration(func, (void*)__func__);
     CHECKERROR("Memory not initialized.");
@@ -63,11 +61,11 @@ class DeviceBuffer {
 
   cl_int CreateDeviceBuffer(size_t sz) {
     if (m_initialized == true) m_err = -9999;
-    CHECKERROR("Memory not initialized.");
+    CHECKERROR("Memory already initialized.");
     assert(sz > 0);
     m_sizeDevBuffer = sz;
     m_devBuffer =
-        clCreateBuffer(m_context, m_flags, m_sizeDevBuffer, NULL, &m_err);
+        clCreateBuffer(m_context, m_flags | CL_MEM_ALLOC_HOST_PTR, m_sizeDevBuffer, NULL, &m_err);
     CHECKERROR("Call made to clCreateBuffer.");
     if (m_err == CL_SUCCESS) m_initialized = true;
     return m_err;
@@ -90,7 +88,7 @@ class DeviceBuffer {
 
   cl_int SyncDeviceBuffer(bool blocking, size_t offset = 0, cl_uint wcount = 0,
                           cl_event* ev = NULL, callbacktype* func = NULL) {
-    if (m_initialized == false || m_map) m_err = -9999;
+    if (m_initialized == false) m_err = -9999;
     CHECKERROR("Memory not initialized.");
     assert(m_sizeDevBuffer - offset > 0);
     assert(m_sizeHostBuffer - offset > 0);
@@ -101,11 +99,12 @@ class DeviceBuffer {
         m_sizeDevBuffer - offset, m_ptrHostBuffer, wcount, ev, &m_event);
     CHECKERROR("Call made to clEnqueueReadBuffer.");
     SetEventConfiguration(func, (void*)__func__);
+    m_map = true;
     return m_err;
   };
   cl_int SyncHostBuffer(cl_bool blocking, size_t offset = 0, cl_uint wcount = 0,
                         cl_event* ev = NULL, callbacktype* func = NULL) {
-    if (m_initialized == false || m_map) m_err = -9999;
+    if (m_initialized == false) m_err = -9999;
     CHECKERROR("Memory not initialized.");
     assert(m_sizeDevBuffer - offset > 0);
     assert(m_sizeHostBuffer - offset > 0);
@@ -121,7 +120,7 @@ class DeviceBuffer {
   cl_int CopyBufferTo(cl_mem& dst, size_t sz, size_t offset_src = 0,
                       size_t offset_dst = 0, cl_uint wcount = 0,
                       cl_event* ev = NULL, callbacktype* func = NULL) {
-    if (m_initialized == false || m_map) m_err = -9999;
+    if (m_initialized == false) m_err = -9999;
     CHECKERROR("Memory not initialized.");
     assert(sz + offset_src <= m_sizeDevBuffer);
     m_err = clEnqueueCopyBuffer(m_cmdQueue, m_devBuffer, dst, offset_src,

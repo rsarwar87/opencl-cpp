@@ -35,14 +35,14 @@ int main (int ac, char** av)
   size_t qidx = mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
   mm->CreateProgram("Test1", fname);
 
-  std::string input = "GdkknVnqkc";
+  std::string input = "GdkfgVnqkc";
+  std::string input2 = "GdkknVnqkc";
 	cout << "input string:" << endl;
 	cout << input << endl;
 	char *output = (char*)malloc(input.size() + 1);
-/*  mm->CreateBuffer("input", (input.size())* sizeof(char), qidx, (void*)input.c_str(), 
-                   READONLY);*/
-  void *data = NULL;
-  mm->CreateMappedBuffer("input", (input.size())* sizeof(char), qidx, data, READONLY);
+  mm->CreateBuffer("input", (input.size())* sizeof(char), qidx, NULL,//(void *)input.c_str(), 
+                   READONLY);
+  void *data = mm->CreateMappedBuffer("input", false);
   memcpy ( data, input.c_str(), (input.size())* sizeof(char));
   mm->CreateBuffer("inter", (input.size() + 1)* sizeof(char), qidx, NULL, 
                    READWRITE, false);
