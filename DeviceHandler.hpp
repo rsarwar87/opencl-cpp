@@ -97,9 +97,11 @@ class DeviceHandler : public DeviceClass {
     ptr->SetHostBuffer(pinned ? NULL : data, sz);
     ptr->CreateDeviceBuffer(sz);
     if (data != NULL && pinned == false) {
-      if (sync) 
-        if (mem_type != WRITEONLY) ptr->SyncDeviceBuffer(blocking);
-        else ptr->SyncHostBuffer(blocking);
+      if (sync)
+      {
+       if (mem_type != WRITEONLY) ptr->SyncDeviceBuffer(blocking);
+       else ptr->SyncHostBuffer(blocking);
+      }
     }
     m_buffers.push_back(std::make_pair(name, ptr));
     return ptr->GetDevBuffer();

@@ -42,7 +42,6 @@ class DeviceBuffer {
     CHECKERROR("Memory not initialized.");
     m_ptrHostBuffer = clEnqueueMapBuffer(m_cmdQueue, m_devBuffer, blocking, m_flags_map,
                                    offset, m_sizeDevBuffer, wcount, ev, &m_event, &m_err);
-    std::cout << "started" << std::endl;
     CHECKERROR("Call made to clEnqueueMapBuffer.");
     if (m_err == CL_SUCCESS) m_initialized = true;
     SetEventConfiguration(func, (void*)__func__);

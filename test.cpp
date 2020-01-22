@@ -32,21 +32,23 @@ int main (int ac, char** av)
   mm->set_profiling(true); 
 //  mm->set_hostnotification(true); 
   mm->PrintPlatformData();
-  size_t qidx = mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_CPU);
+  size_t qidx = mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
   mm->CreateProgram("Test1", fname);
 
   std::string input = "GdkknVnqkc";
 	cout << "input string:" << endl;
 	cout << input << endl;
 	char *output = (char*)malloc(input.size() + 1);
-  mm->CreateBuffer("input", (input.size())* sizeof(char), qidx, NULL, 
+  mm->CreateBuffer("input", (input.size())* sizeof(char), qidx, NULL,// (void*)input.c_str(), 
                    READONLY, true);
   void *data = mm->CreateMappedBuffer("input", false);
   memcpy ( data, input.c_str(), (input.size())* sizeof(char));
   mm->CreateBuffer("inter", (input.size() + 1)* sizeof(char), qidx, NULL, 
                    READWRITE, false);
-  mm->CreateBuffer("output", (input.size() + 1)* sizeof(char), qidx, (void*)output, 
-                   WRITEONLY, false);
+  mm->CreateBuffer("output", (input.size() + 1)* sizeof(char), qidx, NULL, //(void*)output, 
+                   WRITEONLY, true);
+
+  void *data2 = mm->CreateMappedBuffer("output", false);
   mm->CreateKernel("Test1", "helloworld", {"input", "inter"}); 
   mm->CreateKernel("Test1", "helloworld2", {"inter", "output"}); 
   size_t sz[1] = {input.size()};
@@ -58,7 +60,7 @@ int main (int ac, char** av)
   mm->SyncBuffer("output");
 	output[input.size()] = '\0'; //Add the terminal character to the end of output.
 	cout << "\noutput string:" << endl;
-	cout << output << endl;
+	cout << (char*)data2 /*data*/ << endl;
   delete mm;
   return 0;
 }
