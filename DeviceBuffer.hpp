@@ -6,18 +6,7 @@
 #include <DeviceError.hpp>
 #include <iostream>
 #include <chrono>
-
-enum ObjType { Object, Image, Reat };
-
-enum MemType {
-  READONLY,
-  WRITEONLY,
-  READWRITE,
-  CPYHOSTPTR,
-  ALCHOSTPTR,
-  USEHOSTPTR
-};
-typedef void (*callbacktype)(cl_event, cl_int, void*);
+#include <DeviceCommon.hpp>
 
 class DeviceBuffer {
  public:

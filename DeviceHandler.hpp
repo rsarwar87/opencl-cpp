@@ -49,7 +49,7 @@ class DeviceHandler : public DeviceClass {
   void CreateKernel(std::string nprog, std::string nkernel,
                     std::vector<std::string> args,
                     std::vector<size_t> sz = {}) {
-    DeviceProgram* ptr = FindProgram(nprog);
+    DeviceProgram* ptr = (DeviceProgram *)FindProgram(nprog);
     ptr->CreateKernel(nkernel);
 
     for (size_t i = 0; i < args.size(); i++) {
@@ -57,7 +57,7 @@ class DeviceHandler : public DeviceClass {
         ptr->AssignLocalArgument(nkernel, i, sz.at(i));
         continue;
       }
-      DeviceBuffer* p_buf = FindBuffer(args.at(i));
+      DeviceBuffer* p_buf = (DeviceBuffer*)FindBuffer(args.at(i));
       ptr->AssignArgument<decltype(p_buf->GetDevBuffer())>(
           nkernel, i, p_buf->GetDevBuffer());
     }
@@ -74,7 +74,7 @@ class DeviceHandler : public DeviceClass {
                  callbacktype* func = NULL, bool blocking = false,
                  cl_uint n_ev = 0, cl_event* w_ev = NULL,
                  const char* msg = NULL) {
-    FindProgram(nprog)->RunKernel(nkernel, dim_sz, dim, ev, m_queues.at(qidx),
+    ((DeviceProgram*) FindProgram(nprog))->RunKernel(nkernel, dim_sz, dim, ev, m_queues.at(qidx),
                                   func, n_ev, w_ev, msg);
     if (blocking) KernelWaitTillFinish(qidx);
   }
@@ -107,22 +107,22 @@ class DeviceHandler : public DeviceClass {
 
   void ReleaseBuffer(std::string name)
   {
-    FindBuffer(name)->ReleaseMemory();
+    ((DeviceBuffer*) FindBuffer(name))->ReleaseMemory();
   }
 
   void * CreateMappedBuffer(std::string name,                           
                              bool blocking = true, cl_uint wcount = 0,
                              cl_event* ev = NULL, callbacktype* func = NULL,
                              size_t offset = 0) {
-    return FindBuffer(name)->CreateMappedBuffer(blocking, wcount, ev, offset, func);
+    return ((DeviceBuffer*) FindBuffer(name))->CreateMappedBuffer(blocking, wcount, ev, offset, func);
   }
 
   void SyncBuffer(std::string name, bool c2h = true, bool blocking = true,
                   size_t offset = 0, cl_uint wcount = 0, cl_event* ev = NULL) {
     if (!c2h)
-      FindBuffer(name)->SyncDeviceBuffer(blocking, offset, wcount, ev);
+      ((DeviceBuffer*) FindBuffer(name))->SyncDeviceBuffer(blocking, offset, wcount, ev);
     else
-      FindBuffer(name)->SyncHostBuffer(blocking, offset, wcount, ev);
+      ((DeviceBuffer*) FindBuffer(name))->SyncHostBuffer(blocking, offset, wcount, ev);
   }
 
   size_t PrepareContextCommandQueue(cl_device_type typ, bool in_order = false,
@@ -141,7 +141,7 @@ class DeviceHandler : public DeviceClass {
     return m_queues.size() - 1;
   }
 
-  DeviceBuffer* FindBuffer(std::string name) {
+  void* FindBuffer(std::string name) {
     CheckIfInitialized();
     for (size_t i = 0; i < m_buffers.size(); i++) {
       if (m_buffers.at(i).first == name) {
@@ -154,7 +154,7 @@ class DeviceHandler : public DeviceClass {
     return NULL;
   }
 
-  DeviceProgram* FindProgram(std::string name) {
+  void* FindProgram(std::string name) {
     CheckIfInitialized();
     for (size_t i = 0; i < m_programs.size(); i++) {
       if (m_programs.at(i).first == name) {
@@ -171,17 +171,16 @@ class DeviceHandler : public DeviceClass {
   void set_hostnotification(bool val) { m_hostnotification = val; }
 
  private:
-  cl_context m_ctx;
-  std::vector<cl_command_queue> m_queues;
-  cl_device_id* m_device;
-  cl_context_properties m_ctx_prop[3];
-  cl_int m_err;
-  bool m_initialized;
-  std::vector<std::pair<std::string, DeviceProgram*>> m_programs;
-  std::vector<std::pair<std::string, DeviceBuffer*>> m_buffers;
-
-  bool m_profiling;
-  bool m_hostnotification;
+  cl_context m_ctx;                         // device context
+  std::vector<cl_command_queue> m_queues;   // vector containing all the dues issued against the device
+  cl_device_id* m_device;                   // device pointer to the device being used
+  cl_context_properties m_ctx_prop[3];      // properties related to the device context
+  cl_int m_err;                             // error buffer
+  bool m_initialized;                       // flag indicating that the device has been initialized
+  std::vector<std::pair<std::string, void*>> m_programs; // list of all programs
+  std::vector<std::pair<std::string, void*>> m_buffers;  // llist of all memory buffers
+  bool m_profiling;                         // flag indicating that the device profiling is active
+  bool m_hostnotification;                  // flag indicating that the host callback is active
 
   void SelectDevice(cl_device_type typ, size_t p_idx = 99, size_t d_idx = 99) {
     std::stringstream ss;

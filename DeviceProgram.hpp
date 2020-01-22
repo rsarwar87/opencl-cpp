@@ -12,8 +12,7 @@
 #include <sstream>
 #include <utility>
 #include <vector>
-
-typedef void (*callbacktype)(cl_event, cl_int, void*);
+#include <DeviceCommon.hpp>
 
 class DeviceProgram {
  public:

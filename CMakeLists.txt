@@ -22,6 +22,6 @@ add_library (ocl-cpp SHARED lib.cpp)
 target_link_libraries (ocl-cpp ${OpenCL_LIBRARY} dl )
 
 add_executable (test1 test.cpp) 
-target_link_libraries (test1 ${OpenCL_LIBRARY} dl boost_program_options)
+target_link_libraries (test1 ${OpenCL_LIBRARY} dl boost_program_options ocl-cpp)
 
 
