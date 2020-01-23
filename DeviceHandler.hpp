@@ -51,10 +51,11 @@ class DeviceHandler : public DeviceClass {
                     std::vector<size_t> sz = {}) {
     DeviceProgram* ptr = (DeviceProgram *)FindProgram(nprog);
     ptr->CreateKernel(nkernel);
-
+    size_t c = 0;
     for (size_t i = 0; i < args.size(); i++) {
       if (args.at(i) == "NULL") {
-        ptr->AssignLocalArgument(nkernel, i, sz.at(i));
+        ptr->AssignLocalArgument(nkernel, i, sz.at(c));
+        c++;
         continue;
       }
       DeviceBuffer* p_buf = (DeviceBuffer*)FindBuffer(args.at(i));
@@ -94,7 +95,7 @@ class DeviceHandler : public DeviceClass {
                                         m_profiling, m_hostnotification);
     if (pinned) ptr->AppendFlag(ALCHOSTPTR);
 
-    ptr->SetHostBuffer(pinned ? NULL : data, sz);
+    ptr->SetHostBuffer(NULL, sz);
     ptr->CreateDeviceBuffer(sz);
     if (data != NULL && pinned == false) {
       if (sync)

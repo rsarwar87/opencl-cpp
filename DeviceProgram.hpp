@@ -61,7 +61,10 @@ class DeviceProgram {
 
     std::cout << "BUildStatus: " << getoclerrordefs(m_err) << std::endl;
     if (m_err == CL_BUILD_PROGRAM_FAILURE)
+    {
       std::cout << "Printing BuildLog: \n" << GetBuildLog() << std::endl;
+      throw "";
+    }
     return m_err;
   };
 
