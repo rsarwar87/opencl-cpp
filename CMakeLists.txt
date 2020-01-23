@@ -24,4 +24,6 @@ target_link_libraries (ocl-cpp ${OpenCL_LIBRARY} dl )
 add_executable (test1 test.cpp) 
 target_link_libraries (test1 ${OpenCL_LIBRARY} dl boost_program_options ocl-cpp)
 
+add_executable (min_max_reduction min_max_reduction.cpp) 
+target_link_libraries (min_max_reduction ${OpenCL_LIBRARY} dl boost_program_options ocl-cpp)
 

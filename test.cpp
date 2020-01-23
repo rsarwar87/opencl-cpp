@@ -58,7 +58,7 @@ int main (int ac, char** av)
   mm->RunKernel("Test1", "helloworld2", 1, {NULL, sz, NULL}, ev[2], qidx, NULL, false, 1, &ev[1]);
   clSetUserEventStatus(ev[0], CL_SUCCESS);
   mm->SyncBuffer("output");
-	output[input.size()] = '\0'; //Add the terminal character to the end of output.
+	((char*)data2)[input.size()] = '\0'; //Add the terminal character to the end of output.
 	cout << "\noutput string:" << endl;
 	cout << (char*)data2 /*data*/ << endl;
   delete mm;
