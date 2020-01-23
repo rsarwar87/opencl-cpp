@@ -22,7 +22,11 @@ class DeviceBuffer {
     m_err = CL_SUCCESS;
     m_profiling = profiling;
     m_hostnotification = hostnotification;
+    m_imagesize = {0,0,0};
+    m_imagepitch = {0,0};
     m_flags_map = 0;
+    m_is3d = false;
+    m_imageformat = {0,0};
     AppendFlag(flg);
   }
 
@@ -49,7 +53,29 @@ class DeviceBuffer {
     m_map = true;
     return m_ptrHostBuffer;
   }
+  cl_int CreateDeviceBuffer(bool is3d, cl_image_format format)
+  {
+    if (m_initialized == true) m_err = -9999;
+    CHECKERROR("Memory already initialized.");
+    assert(m_sizeDevBuffer > 0);
+    m_is3d = is3d;
+    m_imageformat = format;
+    
+    ValidateImageBufferSize();
+    if (m_is3d)
+      m_devBuffer = clCreateImage3D(
+          m_context, m_flags, &m_imageformat, m_imagesize[0], m_imagesize[1],
+          m_imagesize[2], m_imagepitch[0], m_imagepitch[1], NULL, &m_err);
+    else
+      m_devBuffer = clCreateImage2D(
+          m_context, m_flags, &m_imageformat, m_imagesize[0], m_imagesize[1],
+          m_imagepitch[0], NULL, &m_err);
 
+    CHECKERROR("Call made to clCreateBuffer.");
+    if (m_err == CL_SUCCESS) m_initialized = true;
+    return m_err;
+
+  }
   cl_int CreateDeviceBuffer(size_t sz) {
     if (m_initialized == true) m_err = -9999;
     CHECKERROR("Memory already initialized.");
@@ -132,7 +158,9 @@ class DeviceBuffer {
 
   cl_mem& GetDevBuffer() { return m_devBuffer; }
   void* GetHostBufferPtr() { return m_ptrHostBuffer; }
-  void SetHostBuffer(void* mem, size_t sz) {
+  void SetHostBuffer(void* mem, size_t sz, std::array<size_t,3> dimensions = {0,0,0}, std::array<size_t, 2> pitch = {0, 0}) {
+    m_imagesize = dimensions;
+    m_imagepitch = pitch;
     m_sizeHostBuffer = sz;
     m_ptrHostBuffer = mem;
   }
@@ -145,12 +173,16 @@ class DeviceBuffer {
   cl_mem_flags m_flags;
   cl_map_flags m_flags_map;
   size_t m_sizeHostBuffer;
+  std::array<size_t, 3> m_imagesize;
+  std::array<size_t, 2> m_imagepitch;
   size_t m_sizeDevBuffer;
   cl_mem m_devBuffer;
   void* m_ptrHostBuffer;
   cl_int m_err;
   bool m_initialized;
+  bool m_is3d;
   bool m_map;
+  cl_image_format m_imageformat;
   cl_event m_event;
   bool m_profiling;
   bool m_hostnotification;
@@ -196,6 +228,51 @@ class DeviceBuffer {
     printf("Average transfer, %s, time: %lu (%lu)\n", (const char*)data, end - start, starttime);
 
     //  if (e != NULL) delete e;
+  }
+  void ValidateImageBufferSize()
+  {
+    size_t ch = 0;
+    size_t sz = 0;
+    assert(m_imagesize[0] > 0 || m_imagesize[1] > 0);
+    assert(m_imagepitch[0] > 0);
+    if (m_is3d)
+    {
+      assert(m_imagepitch[1] > 0);
+      assert(m_imagesize[2] > 0);
+    }
+
+    if (m_imageformat.image_channel_data_type ==
+            CL_SNORM_INT8 || m_imageformat.image_channel_data_type ==
+            CL_UNORM_INT8 || m_imageformat.image_channel_data_type ==
+            CL_SIGNED_INT8 || m_imageformat.image_channel_data_type ==
+            CL_UNSIGNED_INT8)
+      sz = 1;
+    else if (m_imageformat.image_channel_data_type ==
+                 CL_SNORM_INT16 || m_imageformat.image_channel_data_type ==
+                 CL_SNORM_INT16 || m_imageformat.image_channel_data_type ==
+                 CL_SIGNED_INT16 || m_imageformat.image_channel_data_type ==
+                 CL_UNSIGNED_INT16 || m_imageformat.image_channel_data_type ==
+                 CL_HALF_FLOAT || m_imageformat.image_channel_data_type ==
+                 CL_UNORM_SHORT_565 || m_imageformat.image_channel_data_type ==
+                 CL_UNORM_SHORT_555 || m_imageformat.image_channel_data_type ==
+                 CL_UNORM_INT_101010)
+      sz = 2;
+    else if (m_imageformat.image_channel_data_type ==
+                 CL_SIGNED_INT32 || m_imageformat.image_channel_data_type ==
+                 CL_UNSIGNED_INT32 || 
+             m_imageformat.image_channel_data_type ==
+                 CL_HALF_FLOAT)
+      sz = 4;
+
+    if (m_imageformat.image_channel_order == CL_R or m_imageformat.image_channel_order == CL_A)
+      ch = 1;
+    else if (m_imageformat.image_channel_order == CL_INTENSITY || m_imageformat.image_channel_order == CL_LUMINANCE ||
+        m_imageformat.image_channel_order == CL_RGBA || m_imageformat.image_channel_order == CL_ARGB || m_imageformat.image_channel_order == CL_BGRA)
+      ch = 4;
+    else
+      ch = 3;
+
+    assert(ch*sz*m_imagesize[0]*m_imagesize[1]*m_imagesize[2] <= m_sizeHostBuffer);
   }
 };
 
