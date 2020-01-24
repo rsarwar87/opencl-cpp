@@ -35,18 +35,19 @@ int main (int ac, char** av)
   size_t qidx = mm->PrepareContextCommandQueue(CL_DEVICE_TYPE_GPU);
   mm->CreateProgram("Test1", fname);
 
-  const size_t nRow = 10;
-  const size_t nCol = 256;
-  const size_t nTotal = nCol;
+  const size_t nRow = 16;
+  const size_t nCol = 16;
+  const size_t nTotal = nCol * nRow;
   const size_t workGroupSize = nCol;
-  const size_t nGroups = nCol / workGroupSize;
+  const size_t nGroups = nTotal / workGroupSize;
 
-  std::array<float, nCol> arr;
-  float tot = 0;
-  for (size_t i = 0; i < nCol; i++)
+  std::array<std::array<float, nCol>, nRow> arr;
+  float tot[nRow] = {0};
+  for (size_t i = 0; i < nRow; i++)
+  for (size_t j = 0; j < nCol; j++)
   { 
-    arr.at(i) = i + 1;
-    tot += i + 1;
+    arr.at(i).at(j) = i + j+ 1;
+    tot[i] += i + j + 1;
   }
 
   mm->CreateBuffer("input", nTotal* sizeof(float), qidx, NULL,// (void*)input.c_str(), 
@@ -65,17 +66,20 @@ int main (int ac, char** av)
   void *pSum = mm->CreateMappedBuffer("pSum", false);
 
   size_t siz = workGroupSize*sizeof(float);
-  mm->CreateKernel("Test1", "min_max_reduction", {"input", "pMin", "pMax", "pSum", "NULL", "NULL", "NULL"}, {siz,siz,siz}); 
-  size_t sz[1] = {workGroupSize};
+  mm->CreateKernel("Test1", "min_max_reduction_2d", {"input", "pMin", "pMax", "pSum", "NULL", "NULL", "NULL"}, {siz,siz,siz}); 
+  const size_t _dim = 2;
+  size_t sz[_dim] = {workGroupSize, nGroups};
+  size_t lsz[_dim] = {workGroupSize, 1};
   cl_event ev[3];
   mm->CreateUserEvent(ev[0]);
-  mm->RunKernel("Test1", "min_max_reduction", 1, {NULL, sz, sz}, ev[1], qidx, NULL, false, 1, &ev[0]);
+  mm->RunKernel("Test1", "min_max_reduction_2d", _dim, {NULL, sz, sz}, ev[1], qidx, NULL, false, 1, &ev[0]);
   clSetUserEventStatus(ev[0], CL_SUCCESS);
   mm->SyncBuffer("pMin");
   mm->SyncBuffer("pMax");
   mm->SyncBuffer("pSum");
 	cout << "\noutput :" << endl;
-	cout << *(float*)pMax << " " << *(float*)pMin << " " << *(float*)pSum  << " " << tot<< endl;
+  for (size_t i = 0; i < nGroups; i++)
+	  cout << i << " == " << ((float*)pMax)[i] << " " << ((float*)pMin)[i] << " " << ((float*)pSum)[i]  << " " << tot [i] << endl;
   delete mm;
   return 0;
 }
